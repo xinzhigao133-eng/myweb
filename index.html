@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>🎵 歌词提取工具（增强版）</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* 保持之前的所有CSS样式不变 */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', Arial;
+            line-height: 1.6; color: #333;
+            background: linear-gradient(135deg,#6a11cb 0%,#2575fc 100%); min-height:100vh; padding:15px;
+        }
+        .container { max-width:100%; margin:0 auto; background:#fff; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden; }
+        header { background:linear-gradient(135deg,#2c3e50 0%,#3498db 100%); color:#fff; padding:20px 15px; text-align:center; }
+        header h1 { font-size:1.8em; margin-bottom:8px; }
+        header p { opacity:0.95; }
+        .main-content { display:flex; flex-direction:column; }
+        .panel { padding:15px; }
+        .left-panel { border-bottom:2px solid #f0f0f0; }
+        .right-panel { background:#f8f9fa; flex:1; display:flex; flex-direction:column; }
+        .section-title { font-size:1.3em; margin-bottom:15px; color:#2c3e50; border-bottom:2px solid #3498db; padding-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+        .file-input-container { margin-bottom:20px; }
+        .file-input-label { display:block; margin-bottom:8px; font-weight:600; color:#2c3e50; }
+        .file-input { width:100%; padding:12px; border:2px dashed #3498db; border-radius:8px; background:#f8f9fa; font-size:16px; margin-bottom:10px; }
+        .table-container { border:1px solid #ddd; border-radius:8px; overflow:auto; margin-bottom:20px; max-height:400px; }
+        table { width:100%; border-collapse:collapse; min-width:650px; }
+        th { background:#34495e; color:white; padding:12px 8px; text-align:left; position:sticky; top:0; font-size:14px; }
+        td { padding:10px 8px; border-bottom:1px solid #eee; font-size:14px; vertical-align:middle; }
+        .index-column { width:5%; min-width:40px; text-align:center; }
+        .song-name-column { width:30%; min-width:130px; }
+        .start-time-column { width:20%; min-width:110px; }
+        .duration-column { width:10%; min-width:70px; }
+        .action-column { width:15%; min-width:120px; }
+        input { width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; font-size:14px; }
+        input:focus { outline:none; border-color:#3498db; box-shadow:0 0 5px rgba(52,152,219,0.3); }
+        .time-input-group { display:flex; gap:5px; }
+        .time-input { flex:1; text-align:center; }
+        .time-separator { line-height:35px; }
+        .button-group { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+        button { padding:12px 16px; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.3s; flex:1; min-width:120px; }
+        .btn-primary { background:#3498db; color:#fff; }
+        .btn-success { background:#27ae60; color:#fff; }
+        .btn-danger { background:#e74c3c; color:#fff; }
+        .btn-warning { background:#f39c12; color:#fff; }
+        .btn-info { background:#17a2b8; color:#fff; }
+        .log-container { flex:1; background:white; border:1px solid #ddd; border-radius:8px; padding:15px; overflow-y:auto; font-family:'Courier New', monospace; font-size:13px; line-height:1.4; min-height:150px; max-height:200px; margin-bottom:15px; }
+        .log-entry { margin-bottom:8px; padding:5px; border-radius:3px; }
+        .log-success { background:#d4edda; color:#155724; border-left:3px solid #28a745; }
+        .log-error { background:#f8d7da; color:#721c24; border-left:3px solid #dc3545; }
+        .log-info { background:#d1ecf1; color:#0c5460; border-left:3px solid #17a2b8; }
+        .log-warning { background:#fff3cd; color:#856404; border-left:3px solid #ffc107; }
+        .instructions { background:#fff3cd; border:1px solid #ffeaa7; border-radius:8px; padding:15px; margin-top:20px; font-size:14px; }
+        .file-list { margin-top:15px; }
+        .file-item { display:flex; justify-content:space-between; align-items:center; padding:8px; background:#f8f9fa; border-radius:4px; margin-bottom:5px; }
+        .file-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .file-status { font-size:12px; padding:2px 6px; border-radius:3px; margin-left:10px; }
+        .status-ready { background:#d4edda; color:#155724; }
+        .status-error { background:#f8d7da; color:#721c24; }
+        .action-buttons { display:flex; gap:5px; }
+        .action-btn { padding:4px 8px; font-size:12px; min-width:auto; flex:none; }
+        .progress-bar { width:100%; height:10px; background:#f0f0f0; border-radius:5px; margin:10px 0; overflow:hidden; }
+        .progress { height:100%; background:#3498db; width:0%; transition:width 0.3s; }
+        .batch-controls { display:flex; gap:10px; margin-bottom:15px; }
+        .batch-input { flex:1; padding:8px; border:1px solid #ddd; border-radius:4px; }
+        @media (min-width:768px) {
+            .main-content { flex-direction:row; }
+            .left-panel { flex:1; border-right:2px solid #f0f0f0; border-bottom:none; }
+            .right-panel { width:400px; }
+        }
+
+        /* --- 自动补全样式 --- */
+        .autocomplete-list {
+            position:absolute;
+            border:1px solid #ccc;
+            background:#fff;
+            z-index:1200;
+            max-height:220px;
+            overflow-y:auto;
+            font-size:14px;
+            box-shadow:0 6px 18px rgba(0,0,0,0.12);
+        }
+        .autocomplete-item { padding:8px 10px; cursor:pointer; }
+        .autocomplete-item:hover, .autocomplete-item.active { background:#f1f1f1; }
+        
+        /* --- 歌单输入样式 --- */
+        .playlist-container { margin-bottom:20px; }
+        .playlist-textarea {
+            width:100%;
+            padding:12px;
+            border:2px dashed #f39c12;
+            border-radius:8px;
+            background:#fff9e6;
+            font-size:14px;
+            line-height:1.5;
+            resize:vertical;
+            min-height:120px;
+        }
+        .playlist-textarea:focus {
+            outline:none;
+            border-color:#e67e22;
+            box-shadow:0 0 5px rgba(230,126,34,0.3);
+        }
+        .playlist-help {
+            font-size:12px;
+            color:#7f8c8d;
+            margin-top:5px;
+        }
+
+        /* --- 预览面板样式（高度增加） --- */
+        .preview-container {
+            flex: 1;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 250px;
+            max-height: 500px;
+        }
+        
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .preview-title {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .preview-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .preview-control-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .preview-content {
+            white-space: pre-wrap;
+            font-family: 'Noto Sans SC', Arial, sans-serif;
+            min-height: 150px;
+        }
+        
+        .preview-song-title {
+            font-weight: 600;
+            color: #3498db;
+            margin: 12px 0 6px 0;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed #eee;
+        }
+        
+        .preview-lyric-line {
+            margin: 4px 0;
+            padding-left: 10px;
+        }
+        
+        .preview-empty {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .preview-stats {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #eee;
+        }
+        
+        /* --- 编辑模式样式 --- */
+        .preview-content[contenteditable="true"] {
+            border: 2px solid #3498db !important;
+            background: #f8f9fa !important;
+            padding: 10px !important;
+            min-height: 200px;
+        }
+        
+        .edit-mode-active {
+            background: #3498db !important;
+            color: white !important;
+        }
+        
+        /* --- 右键菜单样式 --- */
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 180px;
+            display: none;
+        }
+        
+        .context-menu-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+        
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+        
+        .context-menu-item:hover {
+            background: #f5f5f5;
+        }
+        
+        /* --- 纠错对话框样式 --- */
+        .correction-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 2000;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .correction-header {
+            background: #3498db;
+            color: white;
+            padding: 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .correction-body {
+            padding: 15px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .correction-footer {
+            padding: 15px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .search-results {
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .search-result-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1500;
+            display: none;
+        }
+        
+        /* --- 保存状态指示器 --- */
+        .save-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            background: #28a745;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+        }
+        
+        /* --- 搜索框样式 --- */
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .search-button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .search-button:hover {
+            background: #2980b9;
+        }
+        
+        .search-results-count {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 歌词提取工具（增强版）</h1>
+            <p>从 LRC 文件中提取指定时间段的歌词（支持 ZIP 批量）</p>
+        </header>
+
+        <div class="main-content">
+            <div class="panel left-panel">
+                <div class="section-title">
+                    <span>上传文件</span>
+                    <div class="search-container">
+                        <input type="text" id="searchInput" class="search-input" placeholder="搜索歌曲...">
+                        <button class="search-button" onclick="searchSongs()">搜索</button>
+                        <span id="searchResultsCount" class="search-results-count"></span>
+                    </div>
+                </div>
+                
+                <div class="file-input-container">
+                    <label class="file-input-label">选择 LRC 文件或 ZIP 压缩包：</label>
+                    <input type="file" id="lrcFiles" accept=".lrc,.zip" multiple class="file-input">
+                    <small>支持单个 .lrc、多个 .lrc 或包含 LRC 文件的 ZIP 压缩包</small>
+                </div>
+
+                <div id="fileList" class="file-list"></div>
+
+                <h2 class="section-title" style="margin-top:20px;">歌单顺序设置</h2>
+                
+                <div class="playlist-container">
+                    <textarea id="playlistInput" class="playlist-textarea" placeholder="请在此输入您的歌单顺序，每行一首歌名（示例）：
+富士山下
+爱情转移
+红玫瑰
+..."></textarea>
+                    <div class="playlist-help">每行输入一首歌曲名称（不需要歌手名），系统将严格按照此顺序填充歌曲列表</div>
+                </div>
+
+                <h2 class="section-title">歌曲列表编辑</h2>
+
+                <div class="batch-controls">
+                    <div style="flex:1; display:flex; gap:10px;">
+                        <input type="number" id="batchMinutes" class="batch-input" placeholder="批量设置分钟" min="0">
+                        <input type="number" id="batchSeconds" class="batch-input" placeholder="批量设置秒数" min="0" max="59">
+                    </div>
+                    <input type="number" id="batchDuration" class="batch-input" placeholder="批量设置持续时间(秒)" min="1" value="10">
+                    <button class="btn-primary action-btn" onclick="applyBatchSettings()">应用</button>
+                </div>
+
+                <div class="table-container">
+                    <table id="songsTable">
+                        <thead>
+                            <tr>
+                                <th class="index-column">序号</th>
+                                <th class="song-name-column">歌曲名称</th>
+                                <th class="start-time-column">开始时间</th>
+                                <th class="duration-column">持续时间(秒)</th>
+                                <th class="action-column">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="songsTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-warning" onclick="fillSongsByPlaylist()">按歌单顺序填充</button>
+                    <button class="btn-primary" onclick="autoFillSongs()">按文件名填充</button>
+                    <button class="btn-warning" onclick="addSongRow()">添加歌曲</button>
+                    <button class="btn-success" onclick="processSongs()">开始处理</button>
+                    <button class="btn-info" onclick="saveProgress()">保存进度</button>
+                    <button class="btn-info" onclick="loadProgress()">加载进度</button>
+                    <button class="btn-danger" onclick="clearAll()">清空全部</button>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress" id="progressBar"></div>
+                </div>
+
+                <div class="instructions">
+                    <h3>使用说明：</h3>
+                    <p>1. 上传 LRC 文件或 ZIP 压缩包（支持多文件）</p>
+                    <p>2. 在"歌单顺序设置"中输入您的歌单（每行一首歌名，不需要歌手名）</p>
+                    <p>3. 点击"按歌单顺序填充"严格按照歌单顺序填充歌曲列表</p>
+                    <p>4. 在"歌曲名称"输入时会根据上传的所有文件名联想建议（支持上下键和回车）</p>
+                    <p>5. 使用右上角搜索框可以快速搜索和定位歌曲</p>
+                    <p>6. 右键点击歌曲行可进行纠错操作</p>
+                    <p>7. 设置开始时间与持续时间，点击"开始处理"生成 Word 文档</p>
+                    <p>8. 使用"保存进度"保存当前工作状态，下次可"加载进度"继续处理</p>
+                    <p>9. 右侧预览面板会实时显示将要提取的歌词内容，支持直接编辑</p>
+                </div>
+            </div>
+
+            <div class="panel right-panel">
+                <h2 class="section-title">处理日志</h2>
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry log-info">欢迎使用歌词提取工具增强版！支持压缩包上传、歌单顺序填充和歌词直接编辑。</div>
+                </div>
+                
+                <h2 class="section-title">输出预览</h2>
+                <div class="preview-container">
+                    <div class="preview-header">
+                        <div class="preview-title">实时预览</div>
+                        <div class="preview-controls">
+                            <button class="preview-control-btn" onclick="refreshPreview()">🔄 刷新</button>
+                            <button class="preview-control-btn" onclick="clearPreview()">🗑️ 清空</button>
+                            <button class="preview-control-btn" id="editPreviewBtn" onclick="enablePreviewEditing()">✏️ 编辑</button>
+                            <button class="preview-control-btn" id="savePreviewBtn" onclick="savePreviewEdits()">💾 保存</button>
+                        </div>
+                    </div>
+                    <div class="preview-content" id="previewContent">
+                        <div class="preview-empty">暂无预览内容<br>请先上传文件并设置歌曲参数</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存状态指示器 -->
+    <div class="save-status" id="saveStatus"></div>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="showCorrectionDialog()">纠错匹配</div>
+        <div class="context-menu-item" onclick="rematchCurrentSong()">重新匹配此歌曲</div>
+        <div class="context-menu-item" onclick="copySongName()">复制歌曲名称</div>
+        <div class="context-menu-item" onclick="insertRowBelow()">在下方插入行</div>
+    </div>
+
+    <!-- 纠错对话框 -->
+    <div class="overlay" id="overlay"></div>
+    <div class="correction-dialog" id="correctionDialog">
+        <div class="correction-header">
+            <span>歌曲匹配纠错</span>
+            <button style="background:none;border:none;color:white;cursor:pointer;font-size:16px;" onclick="closeCorrectionDialog()">×</button>
+        </div>
+        <div class="correction-body">
+            <div id="currentMatchInfo">
+                <p><strong>当前匹配:</strong> <span id="currentSongName"></span></p>
+            </div>
+            <div style="margin-top:15px;">
+                <p><strong>搜索正确歌曲:</strong></p>
+                <input type="text" id="searchCorrectionInput" style="width:100%;padding:8px;margin:8px 0;" placeholder="输入歌曲名称搜索">
+                <button class="btn-primary" onclick="searchSongsForCorrection()" style="width:100%;">搜索</button>
+            </div>
+            <div class="search-results" id="searchCorrectionResults" style="display:none;">
+                <!-- 搜索结果将在这里显示 -->
+            </div>
+        </div>
+        <div class="correction-footer">
+            <button class="btn-danger" onclick="closeCorrectionDialog()">取消</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 全局状态 ---
+        let lrcFiles = {};   // { fileNameNoExt: {name, content, source} }
+        let songRows = [];   // [{id, songName, minutes, seconds, duration}]
+        let AUTOCOMPLETE_MAX = 8;
+        let previewUpdateTimer = null;
+        let currentContextRowId = null;
+        let autoSaveTimer = null;
+        let isPreviewEditing = false;
+        let originalPreviewContent = '';
+        let editedLyricsContent = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('lrcFiles').addEventListener('change', handleFileUpload);
+            // 默认创建 3 行可编辑行
+            for (let i = 0; i < 3; i++) addSongRow();
+            updateIndexes();
+            
+            // 监听输入变化，实时更新预览
+            setupRealTimePreview();
+            
+            // 点击页面其他地方关闭右键菜单
+            document.addEventListener('click', function() {
+                document.getElementById('contextMenu').style.display = 'none';
+            });
+            
+            // 尝试自动加载上次保存的进度
+            tryAutoLoadProgress();
+            
+            // 搜索框回车事件
+            document.getElementById('searchInput').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    searchSongs();
+                }
+            });
+        });
+
+        // --- 预览编辑功能 ---
+        function enablePreviewEditing() {
+            const previewContent = document.getElementById('previewContent');
+            const editBtn = document.getElementById('editPreviewBtn');
+            
+            if (!isPreviewEditing) {
+                // 进入编辑模式
+                if (previewContent.querySelector('.preview-empty')) {
+                    addLog('请先上传文件并生成预览内容', 'warning');
+                    return;
+                }
+                
+                originalPreviewContent = previewContent.innerHTML;
+                previewContent.contentEditable = true;
+                previewContent.focus();
+                
+                // 更新按钮状态
+                editBtn.classList.add('edit-mode-active');
+                editBtn.textContent = '❌ 取消';
+                
+                isPreviewEditing = true;
+                addLog('预览已进入编辑模式，您可以修改歌词内容', 'info');
+            } else {
+                // 退出编辑模式
+                previewContent.contentEditable = false;
+                previewContent.innerHTML = originalPreviewContent;
+                
+                // 恢复按钮状态
+                editBtn.classList.remove('edit-mode-active');
+                editBtn.textContent = '✏️ 编辑';
+                
+                isPreviewEditing = false;
+                addLog('已退出编辑模式，修改已取消', 'info');
+            }
+        }
+
+        function savePreviewEdits() {
+            if (!isPreviewEditing) {
+                addLog('请先进入编辑模式', 'warning');
+                return;
+            }
+            
+            const previewContent = document.getElementById('previewContent');
+            const editBtn = document.getElementById('editPreviewBtn');
+            const editedContent = previewContent.innerHTML;
+            
+            // 保存编辑后的内容
+            editedLyricsContent = editedContent;
+            
+            // 退出编辑模式
+            previewContent.contentEditable = false;
+            editBtn.classList.remove('edit-mode-active');
+            editBtn.textContent = '✏️ 编辑';
+            isPreviewEditing = false;
+            
+            addLog('歌词修改已保存，导出时将使用编辑后的版本', 'success');
+        }
+
+        function refreshPreview() {
+            if (editedLyricsContent || isPreviewEditing) {
+                // 如果有编辑过的内容或正在编辑，询问用户
+                let message = '您有';
+                if (isPreviewEditing) message += '正在编辑的内容';
+                if (editedLyricsContent && isPreviewEditing) message += '和';
+                if (editedLyricsContent) message += '已保存的编辑内容';
+                message += '，刷新将丢失这些修改。确定要刷新吗？';
+                
+                if (confirm(message)) {
+                    // 退出编辑模式
+                    if (isPreviewEditing) {
+                        const previewContent = document.getElementById('previewContent');
+                        const editBtn = document.getElementById('editPreviewBtn');
+                        previewContent.contentEditable = false;
+                        editBtn.classList.remove('edit-mode-active');
+                        editBtn.textContent = '✏️ 编辑';
+                        isPreviewEditing = false;
+                    }
+                    
+                    // 清除编辑内容
+                    editedLyricsContent = null;
+                    updatePreview();
+                    addLog('预览已刷新，编辑内容已清除', 'info');
+                } else {
+                    addLog('刷新已取消', 'info');
+                }
+            } else {
+                updatePreview();
+                addLog('预览已刷新', 'info');
+            }
+        }
+
+        function clearPreview() {
+            if (editedLyricsContent || isPreviewEditing) {
+                if (confirm('清空预览将丢失所有编辑内容。确定要清空吗？')) {
+                    // 退出编辑模式
+                    if (isPreviewEditing) {
+                        const previewContent = document.getElementById('previewContent');
+                        const editBtn = document.getElementById('editPreviewBtn');
+                        previewContent.contentEditable = false;
+                        editBtn.classList.remove('edit-mode-active');
+                        editBtn.textContent = '✏️ 编辑';
+                        isPreviewEditing = false;
+                    }
+                    
+                    editedLyricsContent = null;
+                    showPreviewEmpty();
+                    addLog('预览已清空，编辑内容已清除', 'info');
+                }
+            } else {
+                showPreviewEmpty();
+                addLog('预览已清空', 'info');
+            }
+        }
+
+        // --- 搜索功能 ---
+        function searchSongs() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (!query) {
+                // 清空搜索，显示所有行
+                const allRows = document.querySelectorAll('#songsTableBody tr');
+                allRows.forEach(row => {
+                    row.style.display = '';
+                });
+                document.getElementById('searchResultsCount').textContent = '';
+                return;
+            }
+            
+            let matchCount = 0;
+            const allRows = document.querySelectorAll('#songsTableBody tr');
+            
+            allRows.forEach(row => {
+                const songInput = row.querySelector('.song-input');
+                if (songInput) {
+                    const songName = songInput.value.toLowerCase();
+                    if (songName.includes(query)) {
+                        row.style.display = '';
+                        matchCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+            
+            document.getElementById('searchResultsCount').textContent = `找到 ${matchCount} 个匹配项`;
+            
+            if (matchCount === 0) {
+                addLog(`未找到包含"${query}"的歌曲`, 'warning');
+            } else {
+                addLog(`找到 ${matchCount} 个包含"${query}"的歌曲`, 'info');
+            }
+        }
+
+        // --- 插入行功能 ---
+        function insertRowBelow() {
+            if (!currentContextRowId) return;
+            
+            const currentIndex = songRows.findIndex(r => r.id === currentContextRowId);
+            if (currentIndex === -1) return;
+            
+            // 创建新行并插入到当前行后面
+            const newRowId = addSongRowAtPosition(currentIndex + 1);
+            
+            addLog('已在当前行下方插入新行', 'info');
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+        
+        function addSongRowAtPosition(position, songName = '', minutes = '', seconds = '', duration = 10) {
+            const tbody = document.getElementById('songsTableBody');
+            const rowId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+            
+            // 创建新行
+            const row = document.createElement('tr');
+            row.id = rowId;
+            row.innerHTML = `
+                <td class="index-column index-cell">${position + 1}</td>
+                <td class="song-name-column">
+                    <input type="text" class="song-input" value="${escapeHtml(songName)}" placeholder="输入歌曲名称">
+                </td>
+                <td class="start-time-column">
+                    <div class="time-input-group">
+                        <input type="number" class="minute-input time-input" value="${minutes}" placeholder="分" min="0">
+                        <span class="time-separator">:</span>
+                        <input type="number" class="second-input time-input" value="${seconds}" placeholder="秒" min="0" max="59">
+                    </div>
+                </td>
+                <td class="duration-column"><input type="number" class="duration-input" value="${duration}" step="0.1" min="1"></td>
+                <td class="action-column">
+                    <div class="action-buttons">
+                        <button class="btn-primary action-btn" onclick="insertRowAt('${rowId}')">插入</button>
+                        <button class="btn-danger action-btn" type="button">删除</button>
+                    </div>
+                </td>
+            `;
+            
+            // 插入到指定位置
+            if (position >= tbody.children.length) {
+                tbody.appendChild(row);
+            } else {
+                tbody.insertBefore(row, tbody.children[position]);
+            }
+            
+            // 保存到 songRows
+            songRows.splice(position, 0, {
+                id: rowId,
+                songName: songName,
+                minutes: minutes,
+                seconds: seconds,
+                duration: duration
+            });
+            
+            // 绑定事件
+            const songInput = row.querySelector('.song-input');
+            const minuteInput = row.querySelector('.minute-input');
+            const secondInput = row.querySelector('.second-input');
+            const durationInput = row.querySelector('.duration-input');
+            const delBtn = row.querySelector('.action-btn.btn-danger');
+            
+            songInput.addEventListener('input', () => {
+                updateSongRow(rowId);
+                schedulePreviewUpdate();
+            });
+            minuteInput.addEventListener('input', () => {
+                updateSongRow(rowId);
+                schedulePreviewUpdate();
+            });
+            secondInput.addEventListener('input', () => {
+                updateSongRow(rowId);
+                schedulePreviewUpdate();
+            });
+            durationInput.addEventListener('input', () => {
+                updateSongRow(rowId);
+                schedulePreviewUpdate();
+            });
+            delBtn.addEventListener('click', () => deleteSongRow(rowId));
+            
+            // 右键菜单事件
+            row.addEventListener('contextmenu', (e) => showContextMenu(e, rowId));
+            
+            // 绑定自动补全
+            setupAutoComplete(songInput, () => Object.keys(lrcFiles), rowId);
+            
+            updateIndexes();
+            return rowId;
+        }
+        
+        function insertRowAt(rowId) {
+            const currentIndex = songRows.findIndex(r => r.id === rowId);
+            if (currentIndex === -1) return;
+            
+            addSongRowAtPosition(currentIndex + 1);
+            addLog('已在指定行下方插入新行', 'info');
+        }
+
+        // --- 本地保存功能 ---
+        function saveProgress() {
+            try {
+                const progressData = {
+                    songRows: songRows.map(row => ({
+                        songName: row.songName,
+                        minutes: row.minutes,
+                        seconds: row.seconds,
+                        duration: row.duration
+                    })),
+                    playlist: document.getElementById('playlistInput').value,
+                    batchMinutes: document.getElementById('batchMinutes').value,
+                    batchSeconds: document.getElementById('batchSeconds').value,
+                    batchDuration: document.getElementById('batchDuration').value,
+                    editedLyricsContent: editedLyricsContent,
+                    timestamp: new Date().toISOString()
+                };
+                
+                localStorage.setItem('lyricExtractorProgress', JSON.stringify(progressData));
+                showSaveStatus('进度已保存', 'success');
+                addLog('进度已保存到本地存储', 'success');
+            } catch (error) {
+                showSaveStatus('保存失败', 'error');
+                addLog('保存进度失败: ' + error.message, 'error');
+            }
+        }
+        
+        function loadProgress() {
+            try {
+                const savedData = localStorage.getItem('lyricExtractorProgress');
+                if (!savedData) {
+                    addLog('没有找到已保存的进度', 'warning');
+                    return;
+                }
+                
+                const progressData = JSON.parse(savedData);
+                
+                // 清空现有表格
+                const tbody = document.getElementById('songsTableBody');
+                tbody.innerHTML = '';
+                songRows = [];
+                
+                // 恢复歌单
+                document.getElementById('playlistInput').value = progressData.playlist || '';
+                
+                // 恢复批量设置
+                document.getElementById('batchMinutes').value = progressData.batchMinutes || '';
+                document.getElementById('batchSeconds').value = progressData.batchSeconds || '';
+                document.getElementById('batchDuration').value = progressData.batchDuration || '10';
+                
+                // 恢复编辑内容
+                editedLyricsContent = progressData.editedLyricsContent || null;
+                
+                // 恢复歌曲列表
+                if (progressData.songRows && progressData.songRows.length > 0) {
+                    progressData.songRows.forEach(song => {
+                        addSongRow(
+                            song.songName || '',
+                            song.minutes || '',
+                            song.seconds || '',
+                            song.duration || 10
+                        );
+                    });
+                    addLog(`已加载 ${progressData.songRows.length} 首歌曲`, 'success');
+                } else {
+                    addLog('已加载进度，但没有歌曲数据', 'info');
+                }
+                
+                showSaveStatus('进度已加载', 'success');
+                
+                // 更新预览
+                updatePreview();
+                
+            } catch (error) {
+                addLog('加载进度失败: ' + error.message, 'error');
+                showSaveStatus('加载失败', 'error');
+            }
+        }
+        
+        function tryAutoLoadProgress() {
+            // 检查是否有保存的进度
+            const savedData = localStorage.getItem('lyricExtractorProgress');
+            if (savedData) {
+                addLog('检测到有保存的进度，点击"加载进度"按钮可恢复', 'info');
+            }
+        }
+        
+        function showSaveStatus(message, type) {
+            const status = document.getElementById('saveStatus');
+            status.textContent = message;
+            status.style.display = 'block';
+            status.style.background = type === 'success' ? '#28a745' : '#dc3545';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 自动保存功能（每30秒自动保存一次）
+        function setupAutoSave() {
+            // 清除之前的定时器
+            if (autoSaveTimer) {
+                clearInterval(autoSaveTimer);
+            }
+            
+            // 设置新的定时器
+            autoSaveTimer = setInterval(() => {
+                if (songRows.length > 0) {
+                    saveProgress();
+                }
+            }, 30000); // 30秒自动保存一次
+        }
+
+        // --- 右键菜单功能 ---
+        function showContextMenu(event, rowId) {
+            event.preventDefault();
+            currentContextRowId = rowId;
+            
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'block';
+            menu.style.left = event.pageX + 'px';
+            menu.style.top = event.pageY + 'px';
+        }
+        
+        function showCorrectionDialog() {
+            if (!currentContextRowId) return;
+            
+            const row = songRows.find(r => r.id === currentContextRowId);
+            if (!row) return;
+            
+            document.getElementById('currentSongName').textContent = row.songName || '未命名歌曲';
+            document.getElementById('correctionDialog').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+        
+        function closeCorrectionDialog() {
+            document.getElementById('correctionDialog').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('searchCorrectionResults').style.display = 'none';
+            document.getElementById('searchCorrectionInput').value = '';
+        }
+        
+        function searchSongsForCorrection() {
+            const query = document.getElementById('searchCorrectionInput').value.trim();
+            if (!query) return;
+            
+            const resultsContainer = document.getElementById('searchCorrectionResults');
+            resultsContainer.innerHTML = '';
+            
+            // 搜索匹配的歌曲
+            const matches = [];
+            for (const fileName in lrcFiles) {
+                // 从文件名中提取歌名部分（去掉歌手名）
+                const songName = extractSongNameFromFileName(fileName);
+                if (songName.toLowerCase().includes(query.toLowerCase())) {
+                    matches.push(fileName);
+                }
+            }
+            
+            if (matches.length === 0) {
+                resultsContainer.innerHTML = '<div style="padding:15px;text-align:center;color:#7f8c8d;">未找到匹配的歌曲</div>';
+            } else {
+                matches.forEach(match => {
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    item.textContent = match;
+                    item.onclick = function() {
+                        // 更新当前行的歌曲名称
+                        const rowIndex = songRows.findIndex(r => r.id === currentContextRowId);
+                        if (rowIndex !== -1) {
+                            songRows[rowIndex].songName = extractSongNameFromFileName(match);
+                            document.querySelector(`#${currentContextRowId} .song-input`).value = extractSongNameFromFileName(match);
+                            addLog(`已更正歌曲为: ${extractSongNameFromFileName(match)}`, 'success');
+                            schedulePreviewUpdate();
+                        }
+                        closeCorrectionDialog();
+                    };
+                    resultsContainer.appendChild(item);
+                });
+            }
+            
+            resultsContainer.style.display = 'block';
+        }
+        
+        function rematchCurrentSong() {
+            if (!currentContextRowId) return;
+            
+            const row = songRows.find(r => r.id === currentContextRowId);
+            if (!row || !row.songName) return;
+            
+            // 查找匹配的LRC文件
+            const matchedFiles = [];
+            for (const fileName in lrcFiles) {
+                if (fuzzyMatch(row.songName, fileName)) {
+                    matchedFiles.push(fileName);
+                }
+            }
+            
+            if (matchedFiles.length === 0) {
+                addLog(`未找到匹配的歌词文件: ${row.songName}`, 'error');
+            } else if (matchedFiles.length === 1) {
+                addLog(`已重新匹配到: ${matchedFiles[0]}`, 'success');
+            } else {
+                addLog(`找到多个匹配文件，使用第一个: ${matchedFiles[0]} (共${matchedFiles.length}个)`, 'info');
+            }
+            
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+        
+        function copySongName() {
+            if (!currentContextRowId) return;
+            
+            const row = songRows.find(r => r.id === currentContextRowId);
+            if (!row || !row.songName) return;
+            
+            navigator.clipboard.writeText(row.songName).then(function() {
+                addLog(`已复制歌曲名称: ${row.songName}`, 'success');
+            }, function() {
+                addLog('复制失败，请手动复制', 'error');
+            });
+            
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        // --- 实时预览功能 ---
+        function setupRealTimePreview() {
+            // 监听歌曲表格中的输入变化
+            document.addEventListener('input', function(e) {
+                if (e.target.classList.contains('song-input') || 
+                    e.target.classList.contains('minute-input') || 
+                    e.target.classList.contains('second-input') || 
+                    e.target.classList.contains('duration-input')) {
+                    
+                    // 如果有编辑过的内容，提示用户
+                    if (editedLyricsContent && !confirm('歌曲设置已更改，这将覆盖您编辑过的歌词内容。确定要继续吗？')) {
+                        // 恢复原来的值
+                        e.target.value = getOriginalValue(e.target);
+                        return;
+                    }
+                    
+                    // 清除编辑内容
+                    editedLyricsContent = null;
+                    if (isPreviewEditing) {
+                        // 如果正在编辑，退出编辑模式
+                        const previewContent = document.getElementById('previewContent');
+                        const editBtn = document.getElementById('editPreviewBtn');
+                        previewContent.contentEditable = false;
+                        editBtn.classList.remove('edit-mode-active');
+                        editBtn.textContent = '✏️ 编辑';
+                        isPreviewEditing = false;
+                    }
+                    
+                    schedulePreviewUpdate();
+                }
+            });
+            
+            // 监听批量设置变化
+            document.getElementById('batchMinutes').addEventListener('input', function(e) {
+                if (editedLyricsContent && !confirm('批量设置将覆盖您编辑过的歌词内容。确定要继续吗？')) {
+                    e.target.value = '';
+                    return;
+                }
+                editedLyricsContent = null;
+                schedulePreviewUpdate();
+            });
+            document.getElementById('batchSeconds').addEventListener('input', function(e) {
+                if (editedLyricsContent && !confirm('批量设置将覆盖您编辑过的歌词内容。确定要继续吗？')) {
+                    e.target.value = '';
+                    return;
+                }
+                editedLyricsContent = null;
+                schedulePreviewUpdate();
+            });
+            document.getElementById('batchDuration').addEventListener('input', function(e) {
+                if (editedLyricsContent && !confirm('批量设置将覆盖您编辑过的歌词内容。确定要继续吗？')) {
+                    e.target.value = '10';
+                    return;
+                }
+                editedLyricsContent = null;
+                schedulePreviewUpdate();
+            });
+            
+            // 监听歌单输入变化
+            document.getElementById('playlistInput').addEventListener('input', schedulePreviewUpdate);
+            
+            // 启动自动保存
+            setupAutoSave();
+        }
+        
+        // 辅助函数：获取输入框的原始值
+        function getOriginalValue(input) {
+            const row = input.closest('tr');
+            if (!row) return input.value;
+            
+            const rowId = row.id;
+            const songRow = songRows.find(r => r.id === rowId);
+            if (!songRow) return input.value;
+            
+            if (input.classList.contains('song-input')) return songRow.songName;
+            if (input.classList.contains('minute-input')) return songRow.minutes;
+            if (input.classList.contains('second-input')) return songRow.seconds;
+            if (input.classList.contains('duration-input')) return songRow.duration;
+            
+            return input.value;
+        }
+        
+        function schedulePreviewUpdate() {
+            // 使用防抖技术，避免频繁更新预览
+            if (previewUpdateTimer) {
+                clearTimeout(previewUpdateTimer);
+            }
+            previewUpdateTimer = setTimeout(updatePreview, 500);
+        }
+        
+        function updatePreview() {
+            // 如果有编辑过的内容，不自动更新预览（除非用户明确要求刷新）
+            if (editedLyricsContent && !isPreviewEditing) {
+                return;
+            }
+            
+            if (Object.keys(lrcFiles).length === 0 || songRows.length === 0) {
+                showPreviewEmpty();
+                return;
+            }
+            
+            let previewContent = '';
+            let totalLyrics = 0;
+            let processedSongs = 0;
+            
+            const validRows = songRows.filter(s => s.songName && s.songName.trim());
+            
+            if (validRows.length === 0) {
+                showPreviewEmpty();
+                return;
+            }
+            
+            for (let i = 0; i < validRows.length; i++) {
+                const song = validRows[i];
+                // 处理空值情况，空字符串视为0
+                const minutes = song.minutes === '' ? 0 : parseInt(song.minutes) || 0;
+                const seconds = song.seconds === '' ? 0 : parseInt(song.seconds) || 0;
+                const startTime = minutes * 60 + seconds;
+                
+                // 找到匹配的文件名
+                const matchedFiles = [];
+                for (const fileName in lrcFiles) {
+                    if (fuzzyMatch(song.songName, fileName)) {
+                        matchedFiles.push(fileName);
+                    }
+                }
+                
+                if (matchedFiles.length === 0) {
+                    previewContent += `<div class="preview-song-title">${i+1}. 《${escapeHtml(song.songName)}》</div>`;
+                    previewContent += `<div class="preview-lyric-line" style="color:#e74c3c;">❌ 未找到匹配的歌词文件</div>`;
+                    continue;
+                }
+                
+                const matchedFile = lrcFiles[matchedFiles[0]];
+                const result = extractLyrics(matchedFile.content, song.songName, startTime, song.duration);
+                
+                previewContent += `<div class="preview-song-title">${i+1}. 《${escapeHtml(song.songName)}》</div>`;
+                
+                if (result.success && result.lyrics.length > 0) {
+                    result.lyrics.forEach(lyric => {
+                        previewContent += `<div class="preview-lyric-line">${escapeHtml(lyric)}</div>`;
+                    });
+                    totalLyrics += result.lyrics.length;
+                    processedSongs++;
+                } else {
+                    previewContent += `<div class="preview-lyric-line" style="color:#f39c12;">⚠️ 该时间段内未找到歌词</div>`;
+                }
+                
+                // 添加歌曲间分隔
+                if (i < validRows.length - 1) {
+                    previewContent += `<div style="margin:10px 0; border-top:1px dashed #eee;"></div>`;
+                }
+            }
+            
+            const stats = `<div class="preview-stats">共 ${processedSongs} 首歌曲，${totalLyrics} 行歌词</div>`;
+            
+            document.getElementById('previewContent').innerHTML = previewContent + stats;
+        }
+        
+        function showPreviewEmpty() {
+            document.getElementById('previewContent').innerHTML = 
+                '<div class="preview-empty">暂无预览内容<br>请先上传文件并设置歌曲参数</div>';
+        }
+
+        // ---------- 新增功能：按歌单顺序填充 ----------
+        function fillSongsByPlaylist() {
+            if (editedLyricsContent && !confirm('按歌单填充将覆盖您编辑过的歌词内容。确定要继续吗？')) {
+                return;
+            }
+            
+            editedLyricsContent = null;
+            
+            const playlistText = document.getElementById('playlistInput').value.trim();
+            if (!playlistText) {
+                addLog('请在歌单输入框中输入歌曲顺序', 'error');
+                return;
+            }
+
+            if (Object.keys(lrcFiles).length === 0) {
+                addLog('请先上传 LRC 文件', 'error');
+                return;
+            }
+
+            // 清空现有表格
+            const tbody = document.getElementById('songsTableBody');
+            tbody.innerHTML = '';
+            songRows = [];
+
+            // 解析歌单（每行一首歌）
+            const playlist = playlistText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (playlist.length === 0) {
+                addLog('歌单中没有有效的歌曲名称', 'error');
+                return;
+            }
+
+            let matchedCount = 0;
+            let unmatchedSongs = [];
+
+            // 按照歌单顺序填充
+            for (const songName of playlist) {
+                // 查找匹配的LRC文件
+                const matchedFiles = [];
+                for (const fileName in lrcFiles) {
+                    if (fuzzyMatch(songName, fileName)) {
+                        matchedFiles.push(fileName);
+                    }
+                }
+
+                if (matchedFiles.length > 0) {
+                    // 使用第一个匹配的文件 - 分钟和秒留空，不预填0
+                    addSongRow(songName, '', '', 10);
+                    matchedCount++;
+                } else {
+                    unmatchedSongs.push(songName);
+                }
+            }
+
+            // 记录填充结果
+            addLog(`已按歌单顺序填充 ${matchedCount} 首歌曲`, 'success');
+            
+            if (unmatchedSongs.length > 0) {
+                addLog(`以下 ${unmatchedSongs.length} 首歌曲未找到匹配的LRC文件：${unmatchedSongs.join(', ')}`, 'warning');
+            }
+            
+            // 更新预览
+            updatePreview();
+        }
+
+        // 更新表格序号
+        function updateIndexes() {
+            const rows = document.querySelectorAll('#songsTableBody tr');
+            rows.forEach((row, index) => {
+                const indexCell = row.querySelector('.index-cell');
+                if (indexCell) indexCell.textContent = index + 1;
+            });
+        }
+
+        // 日志
+        function addLog(message, type='info') {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 更新进度条（percent 0-100）
+        function updateProgress(percent) {
+            const bar = document.getElementById('progressBar');
+            bar.style.width = Math.min(Math.max(percent, 0), 100) + '%';
+        }
+
+        // ---------- 处理上传文件 ----------
+        async function handleFileUpload(event) {
+            const files = Array.from(event.target.files || []);
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            lrcFiles = {}; // 重置
+            addLog(`已选择 ${files.length} 个文件，开始读取...`, 'info');
+            updateProgress(0);
+
+            if (files.length === 0) {
+                addLog('未选择任何文件', 'error');
+                return;
+            }
+
+            let totalOuter = files.length;
+            let outerIndex = 0;
+
+            for (const file of files) {
+                outerIndex++;
+                const fileExt = (file.name.split('.').pop() || '').toLowerCase();
+
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-status status-ready">处理中...</div>
+                `;
+                fileList.appendChild(fileItem);
+
+                try {
+                    if (fileExt === 'zip') {
+                        // 使用 JSZip 解压 - 修复中文文件名编码问题
+                        let zip = await JSZip.loadAsync(file, {
+                            decodeFileName: function(bytes) {
+                                return new TextDecoder('utf-8').decode(bytes);
+                            }
+                        });
+                        const zipFiles = [];
+                        zip.forEach((relativePath, zipEntry) => {
+                            if (!zipEntry.dir && relativePath.toLowerCase().endsWith('.lrc')) {
+                                zipFiles.push({relativePath, zipEntry});
+                            }
+                        });
+
+                        addLog(`在ZIP中找到 ${zipFiles.length} 个 LRC：${file.name}`, 'info');
+
+                        if (zipFiles.length === 0) {
+                            fileItem.querySelector('.file-status').className = 'file-status status-error';
+                            fileItem.querySelector('.file-status').textContent = '无 LRC 文件';
+                            updateProgress(outerIndex / totalOuter * 100);
+                            continue;
+                        }
+
+                        for (let i = 0; i < zipFiles.length; i++) {
+                            const {relativePath, zipEntry} = zipFiles[i];
+                            try {
+                                const lrcContent = await zipEntry.async('text');
+                                const fileName = relativePath.split('/').pop().replace(/\.lrc$/i, '');
+                                lrcFiles[fileName] = { name: fileName, content: lrcContent, source: file.name };
+                            } catch (e) {
+                                addLog(`ZIP 内部读取失败: ${relativePath} - ${e.message}`, 'error');
+                            }
+                            // 允许 UI 刷新，防止阻塞（大量文件时很重要）
+                            await new Promise(r => setTimeout(r, 0));
+                            updateProgress(((outerIndex - 1) + (i + 1) / Math.max(zipFiles.length,1)) / totalOuter * 100);
+                        }
+
+                        fileItem.querySelector('.file-status').textContent = `已提取 ${zipFiles.length} 个文件`;
+                        addLog(`成功从 ZIP 提取 ${zipFiles.length} 个 LRC：${file.name}`, 'success');
+
+                    } else if (fileExt === 'lrc') {
+                        // 直接读取文本（现代浏览器支持 file.text()）
+                        const text = await file.text();
+                        const fileName = file.name.replace(/\.lrc$/i, '');
+                        lrcFiles[fileName] = { name: fileName, content: text, source: file.name };
+                        fileItem.querySelector('.file-status').textContent = '已加载';
+                        addLog(`成功读取 LRC: ${file.name}`, 'success');
+                        updateProgress(outerIndex / totalOuter * 100);
+                    } else {
+                        fileItem.querySelector('.file-status').className = 'file-status status-error';
+                        fileItem.querySelector('.file-status').textContent = '不支持的类型';
+                        addLog(`跳过不支持的文件类型: ${file.name}`, 'error');
+                        updateProgress(outerIndex / totalOuter * 100);
+                    }
+                } catch (err) {
+                    addLog(`处理文件失败: ${file.name} - ${err.message}`, 'error');
+                    fileItem.querySelector('.file-status').className = 'file-status status-error';
+                    fileItem.querySelector('.file-status').textContent = '处理失败';
+                }
+            }
+
+            addLog(`文件读取完成，共 ${Object.keys(lrcFiles).length} 首 LRC 被加载`, 'success');
+            updateProgress(100);
+
+            // 将联想候选更新并保活（但不自动填充）
+            enableAutoCompleteForSongs();
+            
+            // 更新预览
+            updatePreview();
+        }
+
+        // ---------- 动态表格（增删改） ----------
+        function addSongRow(songName = '', minutes = '', seconds = '', duration = 10) {
+            const tbody = document.getElementById('songsTableBody');
+            const rowId = 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+
+            const row = document.createElement('tr');
+            row.id = rowId;
+            row.innerHTML = `
+                <td class="index-column index-cell">${tbody.children.length + 1}</td>
+                <td class="song-name-column">
+                    <input type="text" class="song-input" value="${escapeHtml(songName)}" placeholder="输入歌曲名称">
+                </td>
+                <td class="start-time-column">
+                    <div class="time-input-group">
+                        <input type="number" class="minute-input time-input" value="${minutes}" placeholder="分" min="0">
+                        <span class="time-separator">:</span>
+                        <input type="number" class="second-input time-input" value="${seconds}" placeholder="秒" min="0" max="59">
+                    </div>
+                </td>
+                <td class="duration-column"><input type="number" class="duration-input" value="${duration}" step="0.1" min="1"></td>
+                <td class="action-column">
+                    <div class="action-buttons">
+                        <button class="btn-primary action-btn" onclick="insertRowAt('${rowId}')">插入</button>
+                        <button class="btn-danger action-btn" type="button">删除</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+
+            // 保存到 songRows
+            songRows.push({
+                id: rowId,
+                songName: songName,
+                minutes: minutes,
+                seconds: seconds,
+                duration: duration
+            });
+
+            // 绑定事件：输入改变、删除按钮、自动补全
+            const songInput = row.querySelector('.song-input');
+            const minuteInput = row.querySelector('.minute-input');
+            const secondInput = row.querySelector('.second-input');
+            const durationInput = row.querySelector('.duration-input');
+            const delBtn = row.querySelector('.action-btn.btn-danger');
+
+            songInput.addEventListener('input', () => {
+                updateSongRow(rowId);
+                schedulePreviewUpdate();
+            });
+            minuteInput.addEventListener('input', () => {
+                updateSongRow(rowId);
+                schedulePreviewUpdate();
+            });
+            secondInput.addEventListener('input', () => {
+                updateSongRow(rowId);
+                schedulePreviewUpdate();
+            });
+            durationInput.addEventListener('input', () => {
+                updateSongRow(rowId);
+                schedulePreviewUpdate();
+            });
+            delBtn.addEventListener('click', () => deleteSongRow(rowId));
+            
+            // 右键菜单事件
+            row.addEventListener('contextmenu', (e) => showContextMenu(e, rowId));
+
+            // 绑定自动补全（候选动态来自 lrcFiles 的 keys）
+            setupAutoComplete(songInput, () => Object.keys(lrcFiles), rowId);
+
+            updateIndexes();
+        }
+
+        function deleteSongRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+            // 清理自动补全 wrapper（如果有）
+            const songInput = row.querySelector('.song-input');
+            if (songInput && songInput._autocompleteWrapper) {
+                try { songInput._autocompleteWrapper.remove(); } catch(e) {}
+            }
+
+            row.remove();
+            const idx = songRows.findIndex(r => r.id === rowId);
+            if (idx !== -1) songRows.splice(idx, 1);
+            addLog('已删除歌曲行', 'info');
+            updateIndexes();
+            schedulePreviewUpdate();
+        }
+
+        function updateSongRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+            const inputs = row.getElementsByTagName('input');
+            const songName = inputs[0].value;
+            const minutes = inputs[1].value; // 直接保存字符串，不转换为数字
+            const seconds = inputs[2].value; // 直接保存字符串，不转换为数字
+            const duration = parseFloat(inputs[3].value) || 10;
+
+            const idx = songRows.findIndex(r => r.id === rowId);
+            if (idx !== -1) {
+                songRows[idx] = { 
+                    id: rowId, 
+                    songName: songName, 
+                    minutes: minutes, 
+                    seconds: seconds, 
+                    duration: duration 
+                };
+            }
+        }
+
+        function applyBatchSettings() {
+            if (editedLyricsContent && !confirm('批量设置将覆盖您编辑过的歌词内容。确定要继续吗？')) {
+                return;
+            }
+            
+            editedLyricsContent = null;
+            
+            const batchMinutes = document.getElementById('batchMinutes').value;
+            const batchSeconds = document.getElementById('batchSeconds').value;
+            const batchDuration = document.getElementById('batchDuration').value;
+            
+            let minutes = batchMinutes !== '' ? batchMinutes : null;
+            let seconds = batchSeconds !== '' ? batchSeconds : null;
+            let duration = batchDuration ? parseFloat(batchDuration) : null;
+            
+            if (minutes === null && seconds === null && duration === null) { 
+                addLog('请输入要批量设置的值', 'error'); 
+                return; 
+            }
+
+            let updatedCount = 0;
+            for (let song of songRows) {
+                const row = document.getElementById(song.id);
+                if (!row) continue;
+                const inputs = row.getElementsByTagName('input');
+                if (minutes !== null) inputs[1].value = minutes;
+                if (seconds !== null) inputs[2].value = seconds;
+                if (duration !== null) inputs[3].value = duration;
+                updateSongRow(song.id);
+                updatedCount++;
+            }
+            addLog(`已批量更新 ${updatedCount} 首歌曲的设置`, 'success');
+            schedulePreviewUpdate();
+        }
+
+        // ---------- 自动填充（根据 lrcFiles 的文件名填入） ----------
+        function autoFillSongs() {
+            if (editedLyricsContent && !confirm('按文件名填充将覆盖您编辑过的歌词内容。确定要继续吗？')) {
+                return;
+            }
+            
+            editedLyricsContent = null;
+            
+            const tbody = document.getElementById('songsTableBody');
+            tbody.innerHTML = '';
+            songRows = [];
+            const keys = Object.keys(lrcFiles);
+            if (keys.length === 0) { addLog('请先上传 LRC 文件', 'error'); return; }
+            for (const name of keys) {
+                // 从文件名中提取歌名部分（去掉歌手名）
+                const songName = extractSongNameFromFileName(name);
+                addSongRow(songName, '', '', 10);
+            }
+            addLog(`已按文件名填充 ${keys.length} 首歌曲`, 'success');
+            schedulePreviewUpdate();
+        }
+
+        // ---------- 从文件名提取歌名 ----------
+        function extractSongNameFromFileName(fileName) {
+            // 处理 "歌名 - 歌手名" 格式
+            if (fileName.includes(' - ')) {
+                return fileName.split(' - ')[0].trim();
+            }
+            return fileName;
+        }
+
+        // ---------- 模糊匹配（用于处理时匹配文件名） ----------
+        function fuzzyMatch(pattern, string) {
+            if (!pattern) return true;
+            
+            // 从文件名中提取歌名部分
+            const songNameFromFile = extractSongNameFromFileName(string);
+            
+            const normalizedPattern = pattern.toLowerCase().replace(/\s/g, '');
+            const normalizedString = string.toLowerCase().replace(/\s/g, '');
+            const normalizedSongName = songNameFromFile.toLowerCase().replace(/\s/g, '');
+            
+            // 检查是否匹配完整文件名或歌名部分
+            for (let char of normalizedPattern) {
+                if (!normalizedString.includes(char) && !normalizedSongName.includes(char)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // ---------- 提取歌词（根据时间戳） ----------
+        function extractLyrics(lrcContent, songName, startTime, duration = 10) {
+            try {
+                const lines = lrcContent.split(/\r?\n/);
+                const extractedLyrics = [];
+                const endTime = startTime + duration;
+
+                for (let line of lines) {
+                    if (!line) continue;
+                    // 行可能包含多个时间标签，例如 [01:02.50][00:30.00]歌词
+                    const timeTags = [...line.matchAll(/\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]/g)];
+                    const text = line.replace(/\[(?:\d{1,2}:\d{1,2}(?:\.\d{1,3})?)\]/g, '').trim();
+                    if (!timeTags.length || !text) continue;
+                    for (const tag of timeTags) {
+                        try {
+                            const minutes = parseInt(tag[1], 10);
+                            const seconds = parseInt(tag[2], 10);
+                            const msec = tag[3] ? parseInt(tag[3].padEnd(3,'0'), 10) : 0;
+                            const totalSeconds = minutes * 60 + seconds + (msec / 1000);
+                            if (totalSeconds >= startTime && totalSeconds <= endTime) {
+                                extractedLyrics.push(text);
+                                break; // 若此行任一时间戳满足则添加一次
+                            }
+                        } catch (e) { continue; }
+                    }
+                }
+
+                return {
+                    success: true,
+                    lyrics: extractedLyrics,
+                    message: extractedLyrics.length > 0 ? `提取成功: ${songName} (${startTime}-${endTime}秒)` : `没有找到歌词: ${songName} (${startTime}-${endTime}秒)`
+                };
+            } catch (error) {
+                return { success:false, lyrics:[], message:`处理失败 (${songName}): ${error.message}` };
+            }
+        }
+
+        // ---------- 处理并导出 Word ----------
+        function processSongs() {
+            if (Object.keys(lrcFiles).length === 0) { addLog('请先上传 LRC 文件', 'error'); return; }
+            if (songRows.length === 0) { addLog('请先添加歌曲信息', 'error'); return; }
+
+            addLog('开始处理歌曲...', 'info');
+            updateProgress(0);
+
+            let docContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>歌词提取</title>
+                <style>body{font-family:Arial, sans-serif;margin:20px;} h1{text-align:center;color:#2c3e50;} h2{color:#3498db;padding-bottom:5px;margin-top:25px;} p{margin:10px 0;}</style>
+                </head><body><h1>歌词提取</h1>`;
+
+            // 检查是否有编辑过的歌词内容
+            if (editedLyricsContent) {
+                addLog('检测到编辑过的歌词，将使用编辑版本', 'info');
+                // 直接使用编辑后的内容，但要移除预览特定的HTML结构
+                let editedContent = editedLyricsContent;
+                
+                // 移除预览特定的class和样式
+                editedContent = editedContent.replace(/class="preview-[^"]*"/g, '');
+                editedContent = editedContent.replace(/<div class="preview-stats">[^<]*<\/div>/, '');
+                
+                docContent += editedContent;
+            } else {
+                // 原有的处理逻辑
+                let processedCount = 0;
+                const validRows = songRows.filter(s => s.songName && s.songName.trim());
+                const totalSongs = validRows.length;
+                if (totalSongs === 0) { addLog('没有有效的歌曲信息可处理', 'error'); return; }
+
+                for (let i = 0; i < songRows.length; i++) {
+                    const song = songRows[i];
+                    if (!song.songName || !song.songName.trim()) continue;
+                    
+                    const minutes = song.minutes === '' ? 0 : parseInt(song.minutes) || 0;
+                    const seconds = song.seconds === '' ? 0 : parseInt(song.seconds) || 0;
+                    const startTime = minutes * 60 + seconds;
+                    
+                    addLog(`处理歌曲 ${i+1}/${totalSongs}: ${song.songName} (从 ${minutes}:${seconds} 开始, 持续 ${song.duration} 秒)`, 'info');
+
+                    // 找到匹配的文件名（fuzzy）
+                    const matchedFiles = [];
+                    for (const fileName in lrcFiles) {
+                        if (fuzzyMatch(song.songName, fileName)) {
+                            matchedFiles.push(fileName);
+                        }
+                    }
+
+                    if (matchedFiles.length === 0) {
+                        addLog(`未找到匹配的歌词文件: ${song.songName}`, 'error');
+                        continue;
+                    }
+                    if (matchedFiles.length > 1) addLog(`找到多个匹配文件，使用第一个: ${matchedFiles.join(', ')}`, 'info');
+
+                    const matchedFile = lrcFiles[matchedFiles[0]];
+                    const result = extractLyrics(matchedFile.content, song.songName, startTime, song.duration);
+                    if (result.success && result.lyrics.length > 0) {
+                        // 使用序号和书名号格式化歌曲标题
+                        docContent += `<h2>${i+1}. 《${escapeHtml(song.songName)}》</h2>`;
+                        for (const lyric of result.lyrics) docContent += `<p>${escapeHtml(lyric)}</p>`;
+                        processedCount++;
+                    }
+                    addLog(result.message, (result.success && result.lyrics.length > 0) ? 'success' : 'error');
+                    updateProgress(Math.round((i+1) / totalSongs * 100));
+                }
+            }
+
+            docContent += '</body></html>';
+            if (docContent.includes('<h2>') || editedLyricsContent) {
+                const blob = new Blob([docContent], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'extracted_lyrics.doc';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                addLog(`处理完成！文件已下载`, 'success');
+            } else {
+                addLog('没有成功提取任何歌词', 'error');
+            }
+            updateProgress(100);
+        }
+
+        // ---------- 清空 ----------
+        function clearAll() {
+            document.getElementById('lrcFiles').value = '';
+            document.getElementById('fileList').innerHTML = '';
+            document.getElementById('songsTableBody').innerHTML = '';
+            document.getElementById('logContainer').innerHTML = '<div class="log-entry log-info">已清空所有数据，可以重新开始。</div>';
+            document.getElementById('batchMinutes').value = '';
+            document.getElementById('batchSeconds').value = '';
+            document.getElementById('batchDuration').value = '10';
+            document.getElementById('playlistInput').value = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResultsCount').textContent = '';
+            updateProgress(0);
+            lrcFiles = {};
+            songRows = [];
+            editedLyricsContent = null;
+            // 移除遗留自动补全 wrapper（若有）
+            document.querySelectorAll('.autocomplete-list').forEach(e => e.remove());
+            for (let i = 0; i < 3; i++) addSongRow();
+            showPreviewEmpty();
+            
+            // 清除保存的进度
+            localStorage.removeItem('lyricExtractorProgress');
+            addLog('已清空所有数据并删除保存的进度', 'info');
+        }
+
+        // ---------- 自动补全实现 ----------
+        // getData 可以是函数（返回数组）或数组本身；rowId 用于在选择后调用 updateSongRow
+        function setupAutoComplete(input, getData, rowId) {
+            // 移除已有 wrapper（防止重复绑定）
+            if (input._autocompleteWrapper) {
+                try { input._autocompleteWrapper.remove(); } catch(e) {}
+                input._autocompleteWrapper = null;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'autocomplete-list';
+            wrapper.style.display = 'none';
+            document.body.appendChild(wrapper);
+            input._autocompleteWrapper = wrapper;
+
+            let currentFocus = -1;
+
+            function closeWrapper() {
+                wrapper.style.display = 'none';
+                wrapper.innerHTML = '';
+                currentFocus = -1;
+            }
+
+            input.addEventListener('input', function() {
+                const val = this.value.trim().toLowerCase();
+                wrapper.innerHTML = '';
+                currentFocus = -1;
+                if (!val) { closeWrapper(); return; }
+
+                const candidates = (typeof getData === 'function') ? getData() : (Array.isArray(getData) ? getData : []);
+                if (!candidates || candidates.length === 0) { closeWrapper(); return; }
+
+                const matches = candidates.filter(item => {
+                    // 从文件名中提取歌名部分进行匹配
+                    const songName = extractSongNameFromFileName(item);
+                    return songName.toLowerCase().includes(val) || item.toLowerCase().includes(val);
+                });
+                
+                if (!matches || matches.length === 0) { closeWrapper(); return; }
+
+                matches.slice(0, AUTOCOMPLETE_MAX).forEach(match => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    // 显示歌名部分，但保存完整文件名
+                    div.textContent = extractSongNameFromFileName(match);
+                    // mousedown 保证在 input blur 前可以捕获（click 事件可能晚于 blur）
+                    div.addEventListener('mousedown', function(e) {
+                        e.preventDefault();
+                        // 只填充歌名部分，不包含歌手名
+                        input.value = extractSongNameFromFileName(match);
+                        updateSongRow(rowId);
+                        closeWrapper();
+                        schedulePreviewUpdate();
+                    });
+                    wrapper.appendChild(div);
+                });
+
+                // 定位到输入框下方
+                const rect = input.getBoundingClientRect();
+                wrapper.style.left = rect.left + window.scrollX + 'px';
+                wrapper.style.top = rect.bottom + window.scrollY + 'px';
+                wrapper.style.width = rect.width + 'px';
+                wrapper.style.display = 'block';
+            });
+
+            input.addEventListener('keydown', function(e) {
+                const items = wrapper.querySelectorAll('.autocomplete-item');
+                if (!items || items.length === 0) {
+                    if (e.key === 'Enter') {
+                        // 若无候选，则保持现状
+                    }
+                    return;
+                }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentFocus++;
+                    addActive(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentFocus--;
+                    addActive(items);
+                } else if (e.key === 'Enter') {
+                    if (currentFocus > -1 && items[currentFocus]) {
+                        e.preventDefault();
+                        items[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
+                    } else if (items.length === 1) {
+                        e.preventDefault();
+                        items[0].dispatchEvent(new MouseEvent('mousedown'));
+                    }
+                } else if (e.key === 'Escape') {
+                    closeWrapper();
+                }
+            });
+
+            function addActive(items) {
+                if (!items) return;
+                items.forEach(it => it.classList.remove('active'));
+                if (currentFocus >= items.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = items.length - 1;
+                items[currentFocus].classList.add('active');
+                items[currentFocus].scrollIntoView({ block: 'nearest' });
+            }
+
+            // 点击页面其他地方时自动关闭（但允许点击建议项）
+            document.addEventListener('click', function(e) {
+                if (e.target !== input && e.target.parentNode !== wrapper) {
+                    closeWrapper();
+                }
+            });
+        }
+
+        // 给所有现有 song-input 启用联想（idempotent）
+        function enableAutoCompleteForSongs() {
+            const inputs = document.querySelectorAll('.song-input');
+            inputs.forEach(input => {
+                // rowId
+                const row = input.closest('tr');
+                const rowId = row ? row.id : null;
+                if (!input._autocompleteWrapper) setupAutoComplete(input, () => Object.keys(lrcFiles), rowId);
+            });
+        }
+
+        // ---------- 小工具 ----------
+        function escapeHtml(str) {
+            if (!str && str !== 0) return '';
+            return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+        }
+
+    </script>
+</body>
+</html>
