@@ -936,6 +936,7 @@
             document.getElementById('searchCorrectionInput').value = '';
         }
         
+        // ==== 关键修复：右键纠错功能 ====
         function searchSongsForCorrection() {
             const query = document.getElementById('searchCorrectionInput').value.trim();
             if (!query) return;
@@ -946,10 +947,12 @@
             // 搜索匹配的歌曲
             const matches = [];
             for (const fileName in lrcFiles) {
-                // 从文件名中提取歌名部分（去掉歌手名）
                 const songName = extractSongNameFromFileName(fileName);
                 if (songName.toLowerCase().includes(query.toLowerCase())) {
-                    matches.push(fileName);
+                    matches.push({
+                        fileName: fileName,
+                        displayName: songName
+                    });
                 }
             }
             
@@ -959,16 +962,42 @@
                 matches.forEach(match => {
                     const item = document.createElement('div');
                     item.className = 'search-result-item';
-                    item.textContent = match;
+                    item.innerHTML = `<strong>${match.displayName}</strong><br><small style="color:#7f8c8d;">来源: ${match.fileName}</small>`;
+                    
+                    // ==== 修复关键：更新点击事件处理 ====
                     item.onclick = function() {
-                        // 更新当前行的歌曲名称
+                        // 1. 直接通过ID获取行元素
+                        const rowElement = document.getElementById(currentContextRowId);
+                        if (!rowElement) {
+                            addLog('错误：找不到当前歌曲行', 'error');
+                            closeCorrectionDialog();
+                            return;
+                        }
+                        
+                        // 2. 找到该行内的歌曲名称输入框
+                        const songInput = rowElement.querySelector('.song-input');
+                        if (!songInput) {
+                            addLog('错误：找不到歌曲输入框', 'error');
+                            closeCorrectionDialog();
+                            return;
+                        }
+                        
+                        // 3. 更新输入框值（只使用歌名部分）
+                        songInput.value = match.displayName;
+                        
+                        // 4. 触发输入事件，确保数据同步
+                        songInput.dispatchEvent(new Event('input'));
+                        
+                        // 5. 更新内部数据
                         const rowIndex = songRows.findIndex(r => r.id === currentContextRowId);
                         if (rowIndex !== -1) {
-                            songRows[rowIndex].songName = extractSongNameFromFileName(match);
-                            document.querySelector(`#${currentContextRowId} .song-input`).value = extractSongNameFromFileName(match);
-                            addLog(`已更正歌曲为: ${extractSongNameFromFileName(match)}`, 'success');
-                            schedulePreviewUpdate();
+                            songRows[rowIndex].songName = match.displayName;
                         }
+                        
+                        // 6. 显示成功消息
+                        addLog(`已更正歌曲为: ${match.displayName}`, 'success');
+                        
+                        // 7. 关闭对话框
                         closeCorrectionDialog();
                     };
                     resultsContainer.appendChild(item);
