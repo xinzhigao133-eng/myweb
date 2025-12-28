@@ -514,6 +514,7 @@
         let isPreviewEditing = false;
         let originalPreviewContent = '';
         let editedLyricsContent = null;
+        let manualCorrections = {}; // 存储手动纠错映射: {rowId: {originalName, correctedFileName, displayName}}
 
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('lrcFiles').addEventListener('change', handleFileUpload);
@@ -759,6 +760,11 @@
             
             songInput.addEventListener('input', () => {
                 updateSongRow(rowId);
+                // 当用户手动修改歌曲名称时，清除手动纠错记录
+                if (manualCorrections[rowId]) {
+                    delete manualCorrections[rowId];
+                    addLog('已清除手动纠错记录，将重新自动匹配', 'info');
+                }
                 schedulePreviewUpdate();
             });
             minuteInput.addEventListener('input', () => {
@@ -808,6 +814,7 @@
                     batchSeconds: document.getElementById('batchSeconds').value,
                     batchDuration: document.getElementById('batchDuration').value,
                     editedLyricsContent: editedLyricsContent,
+                    manualCorrections: manualCorrections, // 保存手动纠错记录
                     timestamp: new Date().toISOString()
                 };
                 
@@ -845,6 +852,9 @@
                 
                 // 恢复编辑内容
                 editedLyricsContent = progressData.editedLyricsContent || null;
+                
+                // 恢复手动纠错记录
+                manualCorrections = progressData.manualCorrections || {};
                 
                 // 恢复歌曲列表
                 if (progressData.songRows && progressData.songRows.length > 0) {
@@ -948,7 +958,7 @@
             const matches = [];
             for (const fileName in lrcFiles) {
                 const songName = extractSongNameFromFileName(fileName);
-                if (songName.toLowerCase().includes(query.toLowerCase())) {
+                if (songName.toLowerCase().includes(query.toLowerCase()) || fileName.toLowerCase().includes(query.toLowerCase())) {
                     matches.push({
                         fileName: fileName,
                         displayName: songName
@@ -983,22 +993,37 @@
                         }
                         
                         // 3. 更新输入框值（只使用歌名部分）
+                        const originalName = songInput.value;
                         songInput.value = match.displayName;
                         
-                        // 4. 触发输入事件，确保数据同步
+                        // 4. 保存手动纠错记录
+                        const row = songRows.find(r => r.id === currentContextRowId);
+                        if (row) {
+                            manualCorrections[currentContextRowId] = {
+                                originalName: originalName,
+                                correctedFileName: match.fileName,
+                                displayName: match.displayName
+                            };
+                        }
+                        
+                        // 5. 触发输入事件，确保数据同步
                         songInput.dispatchEvent(new Event('input'));
                         
-                        // 5. 更新内部数据
+                        // 6. 更新内部数据
                         const rowIndex = songRows.findIndex(r => r.id === currentContextRowId);
                         if (rowIndex !== -1) {
                             songRows[rowIndex].songName = match.displayName;
                         }
                         
-                        // 6. 显示成功消息
-                        addLog(`已更正歌曲为: ${match.displayName}`, 'success');
+                        // 7. 显示成功消息
+                        addLog(`已更正歌曲匹配: "${originalName}" → "${match.displayName}"`, 'success');
+                        addLog(`使用歌词文件: ${match.fileName}`, 'info');
                         
-                        // 7. 关闭对话框
+                        // 8. 关闭对话框
                         closeCorrectionDialog();
+                        
+                        // 9. 立即更新预览
+                        schedulePreviewUpdate();
                     };
                     resultsContainer.appendChild(item);
                 });
@@ -1012,6 +1037,12 @@
             
             const row = songRows.find(r => r.id === currentContextRowId);
             if (!row || !row.songName) return;
+            
+            // 清除手动纠错记录，让系统重新自动匹配
+            if (manualCorrections[currentContextRowId]) {
+                delete manualCorrections[currentContextRowId];
+                addLog(`已清除手动纠错记录，将重新自动匹配歌曲: ${row.songName}`, 'info');
+            }
             
             // 查找匹配的LRC文件
             const matchedFiles = [];
@@ -1030,6 +1061,9 @@
             }
             
             document.getElementById('contextMenu').style.display = 'none';
+            
+            // 立即更新预览
+            schedulePreviewUpdate();
         }
         
         function copySongName() {
@@ -1045,6 +1079,39 @@
             });
             
             document.getElementById('contextMenu').style.display = 'none';
+        }
+        
+        // 获取匹配的歌词文件（优先使用手动纠错记录）
+        function getMatchedFile(songName, rowId) {
+            // 首先检查是否有手动纠错记录
+            if (rowId && manualCorrections[rowId]) {
+                const correction = manualCorrections[rowId];
+                if (lrcFiles[correction.correctedFileName]) {
+                    return {
+                        fileName: correction.correctedFileName,
+                        fileData: lrcFiles[correction.correctedFileName],
+                        source: 'manual-correction'
+                    };
+                }
+            }
+            
+            // 如果没有手动纠错记录，使用模糊匹配
+            const matchedFiles = [];
+            for (const fileName in lrcFiles) {
+                if (fuzzyMatch(songName, fileName)) {
+                    matchedFiles.push(fileName);
+                }
+            }
+            
+            if (matchedFiles.length === 0) {
+                return null;
+            }
+            
+            return {
+                fileName: matchedFiles[0],
+                fileData: lrcFiles[matchedFiles[0]],
+                source: 'fuzzy-match'
+            };
         }
 
         // --- 实时预览功能 ---
@@ -1166,24 +1233,26 @@
                 const seconds = song.seconds === '' ? 0 : parseInt(song.seconds) || 0;
                 const startTime = minutes * 60 + seconds;
                 
-                // 找到匹配的文件名
-                const matchedFiles = [];
-                for (const fileName in lrcFiles) {
-                    if (fuzzyMatch(song.songName, fileName)) {
-                        matchedFiles.push(fileName);
-                    }
-                }
+                // 获取匹配的文件（优先使用手动纠错记录）
+                const matchedFileInfo = getMatchedFile(song.songName, song.id);
                 
-                if (matchedFiles.length === 0) {
+                if (!matchedFileInfo) {
                     previewContent += `<div class="preview-song-title">${i+1}. 《${escapeHtml(song.songName)}》</div>`;
                     previewContent += `<div class="preview-lyric-line" style="color:#e74c3c;">❌ 未找到匹配的歌词文件</div>`;
                     continue;
                 }
                 
-                const matchedFile = lrcFiles[matchedFiles[0]];
-                const result = extractLyrics(matchedFile.content, song.songName, startTime, song.duration);
+                const result = extractLyrics(matchedFileInfo.fileData.content, song.songName, startTime, song.duration);
                 
-                previewContent += `<div class="preview-song-title">${i+1}. 《${escapeHtml(song.songName)}》</div>`;
+                // 显示匹配来源
+                let sourceIndicator = '';
+                if (matchedFileInfo.source === 'manual-correction') {
+                    sourceIndicator = `<span style="font-size:11px; color:#27ae60; margin-left:8px;">[手动匹配]</span>`;
+                } else {
+                    sourceIndicator = `<span style="font-size:11px; color:#7f8c8d; margin-left:8px;">[自动匹配]</span>`;
+                }
+                
+                previewContent += `<div class="preview-song-title">${i+1}. 《${escapeHtml(song.songName)}》${sourceIndicator}</div>`;
                 
                 if (result.success && result.lyrics.length > 0) {
                     result.lyrics.forEach(lyric => {
@@ -1201,7 +1270,7 @@
                 }
             }
             
-            const stats = `<div class="preview-stats">共 ${processedSongs} 首歌曲，${totalLyrics} 行歌词</div>`;
+            const stats = `<div class="preview-stats">共 ${processedSongs} 首歌曲，${totalLyrics} 行歌词（手动匹配: ${Object.keys(manualCorrections).length}）</div>`;
             
             document.getElementById('previewContent').innerHTML = previewContent + stats;
         }
@@ -1234,6 +1303,7 @@
             const tbody = document.getElementById('songsTableBody');
             tbody.innerHTML = '';
             songRows = [];
+            manualCorrections = {}; // 清空手动纠错记录
 
             // 解析歌单（每行一首歌）
             const playlist = playlistText.split('\n')
@@ -1451,6 +1521,11 @@
 
             songInput.addEventListener('input', () => {
                 updateSongRow(rowId);
+                // 当用户手动修改歌曲名称时，清除手动纠错记录
+                if (manualCorrections[rowId]) {
+                    delete manualCorrections[rowId];
+                    addLog('已清除手动纠错记录，将重新自动匹配', 'info');
+                }
                 schedulePreviewUpdate();
             });
             minuteInput.addEventListener('input', () => {
@@ -1488,6 +1563,12 @@
             row.remove();
             const idx = songRows.findIndex(r => r.id === rowId);
             if (idx !== -1) songRows.splice(idx, 1);
+            
+            // 清除手动纠错记录
+            if (manualCorrections[rowId]) {
+                delete manualCorrections[rowId];
+            }
+            
             addLog('已删除歌曲行', 'info');
             updateIndexes();
             schedulePreviewUpdate();
@@ -1556,6 +1637,7 @@
             }
             
             editedLyricsContent = null;
+            manualCorrections = {}; // 清空手动纠错记录
             
             const tbody = document.getElementById('songsTableBody');
             tbody.innerHTML = '';
@@ -1677,22 +1759,24 @@
                     
                     addLog(`处理歌曲 ${i+1}/${totalSongs}: ${song.songName} (从 ${minutes}:${seconds} 开始, 持续 ${song.duration} 秒)`, 'info');
 
-                    // 找到匹配的文件名（fuzzy）
-                    const matchedFiles = [];
-                    for (const fileName in lrcFiles) {
-                        if (fuzzyMatch(song.songName, fileName)) {
-                            matchedFiles.push(fileName);
-                        }
-                    }
+                    // 获取匹配的歌词文件（优先使用手动纠错记录）
+                    const matchedFileInfo = getMatchedFile(song.songName, song.id);
 
-                    if (matchedFiles.length === 0) {
+                    if (!matchedFileInfo) {
                         addLog(`未找到匹配的歌词文件: ${song.songName}`, 'error');
                         continue;
                     }
-                    if (matchedFiles.length > 1) addLog(`找到多个匹配文件，使用第一个: ${matchedFiles.join(', ')}`, 'info');
+                    
+                    // 显示匹配来源
+                    if (matchedFileInfo.source === 'manual-correction') {
+                        addLog(`使用手动纠错匹配的歌词文件: ${matchedFileInfo.fileName}`, 'info');
+                    } else {
+                        if (Object.keys(lrcFiles).length > 1) {
+                            addLog(`使用自动匹配的歌词文件: ${matchedFileInfo.fileName}`, 'info');
+                        }
+                    }
 
-                    const matchedFile = lrcFiles[matchedFiles[0]];
-                    const result = extractLyrics(matchedFile.content, song.songName, startTime, song.duration);
+                    const result = extractLyrics(matchedFileInfo.fileData.content, song.songName, startTime, song.duration);
                     if (result.success && result.lyrics.length > 0) {
                         // 使用序号和书名号格式化歌曲标题
                         docContent += `<h2>${i+1}. 《${escapeHtml(song.songName)}》</h2>`;
@@ -1738,6 +1822,7 @@
             lrcFiles = {};
             songRows = [];
             editedLyricsContent = null;
+            manualCorrections = {}; // 清空手动纠错记录
             // 移除遗留自动补全 wrapper（若有）
             document.querySelectorAll('.autocomplete-list').forEach(e => e.remove());
             for (let i = 0; i < 3; i++) addSongRow();
@@ -1798,6 +1883,12 @@
                         e.preventDefault();
                         // 只填充歌名部分，不包含歌手名
                         input.value = extractSongNameFromFileName(match);
+                        
+                        // 如果之前有手动纠错记录，清除它（因为用户选择了新的自动匹配）
+                        if (manualCorrections[rowId]) {
+                            delete manualCorrections[rowId];
+                        }
+                        
                         updateSongRow(rowId);
                         closeWrapper();
                         schedulePreviewUpdate();
