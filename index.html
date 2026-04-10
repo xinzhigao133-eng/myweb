@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>🎵 歌词提取工具（精准匹配版）</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>🎵 歌词提取工具（竖屏大容量版）</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -12,19 +12,19 @@
             line-height: 1.6; color: #333;
             background: linear-gradient(135deg,#6a11cb 0%,#2575fc 100%); min-height:100vh; padding:15px;
         }
-        .container { max-width:100%; margin:0 auto; background:#fff; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden; }
-        header { background:linear-gradient(135deg,#2c3e50 0%,#3498db 100%); color:#fff; padding:20px 15px; text-align:center; }
+        .container { max-width:100%; margin:0 auto; background:#fff; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden; display:flex; flex-direction:column; height: calc(100vh - 30px); }
+        header { background:linear-gradient(135deg,#2c3e50 0%,#3498db 100%); color:#fff; padding:20px 15px; text-align:center; flex-shrink:0; }
         header h1 { font-size:1.8em; margin-bottom:8px; }
         header p { opacity:0.95; }
-        .main-content { display:flex; flex-direction:column; }
-        .panel { padding:15px; }
-        .left-panel { border-bottom:2px solid #f0f0f0; }
-        .right-panel { background:#f8f9fa; flex:1; display:flex; flex-direction:column; }
-        .section-title { font-size:1.3em; margin-bottom:15px; color:#2c3e50; border-bottom:2px solid #3498db; padding-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+        .main-content { display:flex; flex-direction:row; flex:1; min-height:0; overflow:auto; }
+        .panel { padding:15px; overflow-y:auto; }
+        .left-panel { flex:1.5; border-right:2px solid #f0f0f0; }
+        .right-panel { flex:1; background:#f8f9fa; display:flex; flex-direction:column; }
+        .section-title { font-size:1.3em; margin-bottom:15px; color:#2c3e50; border-bottom:2px solid #3498db; padding-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
         .file-input-container { margin-bottom:20px; }
         .file-input-label { display:block; margin-bottom:8px; font-weight:600; color:#2c3e50; }
         .file-input { width:100%; padding:12px; border:2px dashed #3498db; border-radius:8px; background:#f8f9fa; font-size:16px; margin-bottom:10px; }
-        .table-container { border:1px solid #ddd; border-radius:8px; overflow:auto; margin-bottom:20px; max-height:400px; }
+        .table-container { border:1px solid #ddd; border-radius:8px; overflow:auto; margin-bottom:20px; flex:1; min-height:200px; }
         table { width:100%; border-collapse:collapse; min-width:650px; }
         th { background:#34495e; color:white; padding:12px 8px; text-align:left; position:sticky; top:0; font-size:14px; }
         td { padding:10px 8px; border-bottom:1px solid #eee; font-size:14px; vertical-align:middle; }
@@ -45,14 +45,14 @@
         .btn-danger { background:#e74c3c; color:#fff; }
         .btn-warning { background:#f39c12; color:#fff; }
         .btn-info { background:#17a2b8; color:#fff; }
-        .log-container { flex:1; background:white; border:1px solid #ddd; border-radius:8px; padding:15px; overflow-y:auto; font-family:'Courier New', monospace; font-size:13px; line-height:1.4; min-height:150px; max-height:200px; margin-bottom:15px; }
+        .log-container { background:white; border:1px solid #ddd; border-radius:8px; padding:15px; overflow-y:auto; font-family:'Courier New', monospace; font-size:13px; line-height:1.4; margin-bottom:15px; flex:1; min-height:120px; max-height:30vh; }
         .log-entry { margin-bottom:8px; padding:5px; border-radius:3px; }
         .log-success { background:#d4edda; color:#155724; border-left:3px solid #28a745; }
         .log-error { background:#f8d7da; color:#721c24; border-left:3px solid #dc3545; }
         .log-info { background:#d1ecf1; color:#0c5460; border-left:3px solid #17a2b8; }
         .log-warning { background:#fff3cd; color:#856404; border-left:3px solid #ffc107; }
-        .instructions { background:#fff3cd; border:1px solid #ffeaa7; border-radius:8px; padding:15px; margin-top:20px; font-size:14px; }
-        .file-list { margin-top:15px; }
+        .instructions { background:#fff3cd; border:1px solid #ffeaa7; border-radius:8px; padding:15px; margin-top:20px; font-size:14px; flex-shrink:0; }
+        .file-list { margin-top:15px; max-height:150px; overflow-y:auto; }
         .file-item { display:flex; justify-content:space-between; align-items:center; padding:8px; background:#f8f9fa; border-radius:4px; margin-bottom:5px; }
         .file-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .file-status { font-size:12px; padding:2px 6px; border-radius:3px; margin-left:10px; }
@@ -62,14 +62,9 @@
         .action-btn { padding:4px 8px; font-size:12px; min-width:auto; flex:none; }
         .progress-bar { width:100%; height:10px; background:#f0f0f0; border-radius:5px; margin:10px 0; overflow:hidden; }
         .progress { height:100%; background:#3498db; width:0%; transition:width 0.3s; }
-        .batch-controls { display:flex; gap:10px; margin-bottom:15px; }
-        .batch-input { flex:1; padding:8px; border:1px solid #ddd; border-radius:4px; }
-        @media (min-width:768px) {
-            .main-content { flex-direction:row; }
-            .left-panel { flex:1; border-right:2px solid #f0f0f0; border-bottom:none; }
-            .right-panel { width:400px; }
-        }
-
+        .batch-controls { display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap; }
+        .batch-input { flex:1; padding:8px; border:1px solid #ddd; border-radius:4px; min-width:80px; }
+        
         .autocomplete-list {
             position:absolute;
             border:1px solid #ccc;
@@ -95,19 +90,7 @@
             resize:vertical;
             min-height:120px;
         }
-        .playlist-textarea:focus {
-            outline:none;
-            border-color:#e67e22;
-            box-shadow:0 0 5px rgba(230,126,34,0.3);
-        }
-        .playlist-help {
-            font-size:12px;
-            color:#7f8c8d;
-            margin-top:5px;
-        }
-
         .preview-container {
-            flex: 1;
             background: white;
             border: 1px solid #ddd;
             border-radius: 8px;
@@ -115,10 +98,11 @@
             overflow-y: auto;
             font-size: 14px;
             line-height: 1.5;
-            min-height: 250px;
-            max-height: 500px;
+            flex: 2;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
         }
-        
         .preview-header {
             display: flex;
             justify-content: space-between;
@@ -126,18 +110,10 @@
             margin-bottom: 10px;
             padding-bottom: 8px;
             border-bottom: 1px solid #eee;
+            flex-shrink:0;
         }
-        
-        .preview-title {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        
-        .preview-controls {
-            display: flex;
-            gap: 8px;
-        }
-        
+        .preview-title { font-weight: 600; color: #2c3e50; }
+        .preview-controls { display: flex; gap: 8px; }
         .preview-control-btn {
             padding: 4px 8px;
             font-size: 12px;
@@ -146,13 +122,12 @@
             background: #f8f9fa;
             cursor: pointer;
         }
-        
         .preview-content {
             white-space: pre-wrap;
             font-family: 'Noto Sans SC', Arial, sans-serif;
-            min-height: 150px;
+            flex:1;
+            overflow-y:auto;
         }
-        
         .preview-song-title {
             font-weight: 600;
             color: #3498db;
@@ -160,38 +135,11 @@
             padding-bottom: 4px;
             border-bottom: 1px dashed #eee;
         }
-        
-        .preview-lyric-line {
-            margin: 4px 0;
-            padding-left: 10px;
-        }
-        
-        .preview-empty {
-            text-align: center;
-            color: #7f8c8d;
-            font-style: italic;
-            padding: 20px;
-        }
-        
-        .preview-stats {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px solid #eee;
-        }
-        
-        .preview-content[contenteditable="true"] {
-            border: 2px solid #3498db !important;
-            background: #f8f9fa !important;
-            padding: 10px !important;
-            min-height: 200px;
-        }
-        
-        .edit-mode-active {
-            background: #3498db !important;
-            color: white !important;
-        }
+        .preview-lyric-line { margin: 4px 0; padding-left: 10px; }
+        .preview-empty { text-align: center; color: #7f8c8d; font-style: italic; padding: 20px; }
+        .preview-stats { font-size: 12px; color: #7f8c8d; margin-top: 10px; padding-top: 8px; border-top: 1px solid #eee; }
+        .preview-content[contenteditable="true"] { border: 2px solid #3498db !important; background: #f8f9fa !important; padding: 10px !important; min-height: 200px; }
+        .edit-mode-active { background: #3498db !important; color: white !important; }
         
         .context-menu {
             position: absolute;
@@ -203,21 +151,9 @@
             min-width: 180px;
             display: none;
         }
-        
-        .context-menu-item {
-            padding: 10px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.2s;
-        }
-        
-        .context-menu-item:last-child {
-            border-bottom: none;
-        }
-        
-        .context-menu-item:hover {
-            background: #f5f5f5;
-        }
+        .context-menu-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
+        .context-menu-item:last-child { border-bottom: none; }
+        .context-menu-item:hover { background: #f5f5f5; }
         
         .correction-dialog {
             position: fixed;
@@ -234,588 +170,571 @@
             overflow: hidden;
             display: none;
         }
+        .correction-header { background: #3498db; color: white; padding: 15px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .correction-body { padding: 15px; max-height: 60vh; overflow-y: auto; }
+        .correction-footer { padding: 15px; background: #f8f9fa; display: flex; justify-content: flex-end; gap: 10px; }
+        .search-results { margin-top: 15px; border: 1px solid #ddd; border-radius: 6px; max-height: 300px; overflow-y: auto; }
+        .search-result-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .search-result-item:hover { background: #f5f5f5; }
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1500; display: none; }
+        .save-status { position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; border-radius: 5px; background: #28a745; color: white; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; display: none; }
+        .search-container { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+        .search-input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .search-button { padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .manual-match-badge { background: #27ae60; color: white; font-size: 10px; padding: 2px 6px; border-radius: 12px; margin-left: 8px; vertical-align: middle; }
         
-        .correction-header {
-            background: #3498db;
-            color: white;
-            padding: 15px;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* ========= 竖屏模式优化 - 表格显示更多行 ========= */
+        @media (orientation: portrait) {
+            .main-content {
+                flex-direction: column;
+            }
+            .left-panel {
+                flex: 2;  /* 左侧占用更多空间 */
+                border-right: none;
+                border-bottom: 2px solid #f0f0f0;
+                overflow-y: auto;
+            }
+            .right-panel {
+                flex: 1;
+                min-height: 40vh;
+            }
+            .table-container {
+                flex: 1;
+                min-height: 55vh;  /* 占据超过一半的竖屏高度 */
+                max-height: 65vh;
+                overflow: auto;
+            }
+            /* 让表格内容更紧凑，显示更多行 */
+            td, th {
+                padding: 8px 6px;
+            }
+            .log-container {
+                max-height: 20vh;
+            }
+            .preview-container {
+                min-height: 200px;
+                flex: 1;
+            }
+            .button-group button {
+                padding: 10px 12px;
+                min-width: 90px;
+            }
         }
         
-        .correction-body {
-            padding: 15px;
-            max-height: 60vh;
-            overflow-y: auto;
-        }
-        
-        .correction-footer {
-            padding: 15px;
-            background: #f8f9fa;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-        
-        .search-results {
-            margin-top: 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .search-result-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-        }
-        
-        .search-result-item:hover {
-            background: #f5f5f5;
-        }
-        
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1500;
-            display: none;
-        }
-        
-        .save-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            border-radius: 5px;
-            background: #28a745;
-            color: white;
-            font-size: 14px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            z-index: 1000;
-            display: none;
-        }
-        
-        .search-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            align-items: center;
-        }
-        
-        .search-input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        .search-button {
-            padding: 8px 16px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .manual-match-badge {
-            background: #27ae60;
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 12px;
-            margin-left: 8px;
-            vertical-align: middle;
+        @media (orientation: landscape) and (min-height: 800px) {
+            .table-container { max-height: 50vh; }
+            .log-container { max-height: 25vh; }
+            .preview-container { min-height: 300px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🎵 歌词提取工具（精准匹配版）</h1>
-            <p>支持中英文智能匹配 | 手动指定歌词文件 | 歌单顺序 | 实时预览编辑</p>
-        </header>
+<div class="container">
+    <header>
+        <h1>🎵 歌词提取工具（蒋丞专用版）</h1>
+        <p>智能匹配 | 手动指定 | 歌单顺序 | 竖屏下显示更多歌曲行</p>
+    </header>
 
-        <div class="main-content">
-            <div class="panel left-panel">
-                <div class="section-title">
-                    <span>上传文件</span>
-                    <div class="search-container">
-                        <input type="text" id="searchInput" class="search-input" placeholder="搜索歌曲...">
-                        <button class="search-button" onclick="searchSongs()">搜索</button>
-                        <span id="searchResultsCount" class="search-results-count"></span>
-                    </div>
+    <div class="main-content">
+        <div class="panel left-panel">
+            <div class="section-title">
+                <span>上传文件</span>
+                <div class="search-container">
+                    <input type="text" id="searchInput" class="search-input" placeholder="搜索歌曲...">
+                    <button class="search-button" onclick="searchSongs()">搜索</button>
+                    <span id="searchResultsCount" class="search-results-count"></span>
                 </div>
-                
-                <div class="file-input-container">
-                    <label class="file-input-label">选择 LRC 文件或 ZIP 压缩包：</label>
-                    <input type="file" id="lrcFiles" accept=".lrc,.zip" multiple class="file-input">
-                    <small>支持单个 .lrc、多个 .lrc 或包含 LRC 文件的 ZIP 压缩包</small>
-                </div>
+            </div>
+            
+            <div class="file-input-container">
+                <label class="file-input-label">选择 LRC 文件或 ZIP 压缩包：</label>
+                <input type="file" id="lrcFiles" accept=".lrc,.zip" multiple class="file-input">
+                <small>支持单个 .lrc、多个 .lrc 或包含 LRC 文件的 ZIP 压缩包</small>
+            </div>
+            <div id="fileList" class="file-list"></div>
 
-                <div id="fileList" class="file-list"></div>
-
-                <h2 class="section-title" style="margin-top:20px;">歌单顺序设置</h2>
-                
-                <div class="playlist-container">
-                    <textarea id="playlistInput" class="playlist-textarea" placeholder="请在此输入您的歌单顺序，每行一首歌名（示例）：
+            <h2 class="section-title" style="margin-top:20px;">歌单顺序设置</h2>
+            <div class="playlist-container">
+                <textarea id="playlistInput" class="playlist-textarea" placeholder="每行一首歌名（示例）：
 富士山下
 爱情转移
-红玫瑰
-..."></textarea>
-                    <div class="playlist-help">每行输入一首歌曲名称（不需要歌手名），系统将严格按照此顺序填充歌曲列表</div>
+红玫瑰"></textarea>
+                <div class="playlist-help">每行输入一首歌曲名称，系统将严格按照此顺序填充歌曲列表</div>
+            </div>
+
+            <h2 class="section-title">歌曲列表编辑</h2>
+            <div class="batch-controls">
+                <div style="flex:1; display:flex; gap:10px;">
+                    <input type="number" id="batchMinutes" class="batch-input" placeholder="批量分钟" min="0">
+                    <input type="number" id="batchSeconds" class="batch-input" placeholder="批量秒数" min="0" max="59">
                 </div>
+                <input type="number" id="batchDuration" class="batch-input" placeholder="持续时间(秒)" min="1" value="10">
+                <button class="btn-primary action-btn" onclick="applyBatchSettings()">应用</button>
+            </div>
 
-                <h2 class="section-title">歌曲列表编辑</h2>
+            <div class="table-container">
+                <table id="songsTable">
+                    <thead><tr><th class="index-column">序号</th><th class="song-name-column">歌曲名称</th><th class="start-time-column">开始时间</th><th class="duration-column">持续时间(秒)</th><th class="action-column">操作</th></thead>
+                    <tbody id="songsTableBody"></tbody>
+                </table>
+            </div>
 
-                <div class="batch-controls">
-                    <div style="flex:1; display:flex; gap:10px;">
-                        <input type="number" id="batchMinutes" class="batch-input" placeholder="批量设置分钟" min="0">
-                        <input type="number" id="batchSeconds" class="batch-input" placeholder="批量设置秒数" min="0" max="59">
+            <div class="button-group">
+                <button class="btn-warning" onclick="fillSongsByPlaylist()">按歌单顺序填充</button>
+                <button class="btn-primary" onclick="autoFillSongs()">按文件名填充</button>
+                <button class="btn-warning" onclick="addSongRow()">添加歌曲</button>
+                <button class="btn-success" onclick="processSongs()">开始处理</button>
+                <button class="btn-info" onclick="saveProgress()">保存进度</button>
+                <button class="btn-info" onclick="loadProgress()">加载进度</button>
+                <button class="btn-danger" onclick="clearAll()">清空全部</button>
+            </div>
+
+            <div class="progress-bar"><div class="progress" id="progressBar"></div></div>
+            <div class="instructions">
+                <h3>使用说明：</h3>
+                <p>✔ 上传 LRC 文件或 ZIP 压缩包</p>
+                <p>✔ 歌单按行填写，点击“按歌单顺序填充”</p>
+                <p>✔ 右键歌曲行 → “手动匹配歌词文件” 精准指定 LRC（不改变歌曲标题）</p>
+                <p>✔ 竖屏下表格区域已扩大，可同时显示更多歌曲</p>
+            </div>
+        </div>
+
+        <div class="panel right-panel">
+            <h2 class="section-title">处理日志</h2>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry log-info">竖屏模式下表格已优化，可显示更多歌曲行。</div>
+            </div>
+            <h2 class="section-title">输出预览</h2>
+            <div class="preview-container">
+                <div class="preview-header">
+                    <div class="preview-title">实时预览</div>
+                    <div class="preview-controls">
+                        <button class="preview-control-btn" onclick="refreshPreview()">🔄 刷新</button>
+                        <button class="preview-control-btn" onclick="clearPreview()">🗑️ 清空</button>
+                        <button class="preview-control-btn" id="editPreviewBtn" onclick="enablePreviewEditing()">✏️ 编辑</button>
+                        <button class="preview-control-btn" id="savePreviewBtn" onclick="savePreviewEdits()">💾 保存</button>
                     </div>
-                    <input type="number" id="batchDuration" class="batch-input" placeholder="批量设置持续时间(秒)" min="1" value="10">
-                    <button class="btn-primary action-btn" onclick="applyBatchSettings()">应用</button>
                 </div>
-
-                <div class="table-container">
-                    <table id="songsTable">
-                        <thead>
-                            <tr><th class="index-column">序号</th><th class="song-name-column">歌曲名称</th><th class="start-time-column">开始时间</th><th class="duration-column">持续时间(秒)</th><th class="action-column">操作</th></tr>
-                        </thead>
-                        <tbody id="songsTableBody"></tbody>
-                    </table>
-                </div>
-
-                <div class="button-group">
-                    <button class="btn-warning" onclick="fillSongsByPlaylist()">按歌单顺序填充</button>
-                    <button class="btn-primary" onclick="autoFillSongs()">按文件名填充</button>
-                    <button class="btn-warning" onclick="addSongRow()">添加歌曲</button>
-                    <button class="btn-success" onclick="processSongs()">开始处理</button>
-                    <button class="btn-info" onclick="saveProgress()">保存进度</button>
-                    <button class="btn-info" onclick="loadProgress()">加载进度</button>
-                    <button class="btn-danger" onclick="clearAll()">清空全部</button>
-                </div>
-
-                <div class="progress-bar"><div class="progress" id="progressBar"></div></div>
-
-                <div class="instructions">
-                    <h3>使用说明：</h3>
-                    <p>1. 上传 LRC 文件或 ZIP 压缩包（支持多文件）</p>
-                    <p>2. 在"歌单顺序设置"中输入您的歌单（每行一首歌名，不需要歌手名）</p>
-                    <p>3. 点击"按歌单顺序填充"严格按照歌单顺序填充歌曲列表</p>
-                    <p>4. 右键点击歌曲行 → "手动匹配歌词文件" 可以精准指定使用的LRC文件（不会改变歌曲标题）</p>
-                    <p>5. 智能匹配算法会忽略大小写、标点、中英文差异（例如"岛island"可匹配到"岛.lrc"）</p>
-                    <p>6. 设置开始时间与持续时间，点击"开始处理"生成 Word 文档</p>
-                    <p>7. 使用"保存进度"保存当前工作状态，下次可"加载进度"继续处理</p>
-                    <p>8. 右侧预览面板会实时显示将要提取的歌词内容，支持直接编辑</p>
-                </div>
-            </div>
-
-            <div class="panel right-panel">
-                <h2 class="section-title">处理日志</h2>
-                <div class="log-container" id="logContainer"><div class="log-entry log-info">欢迎使用精准匹配版！支持中英文智能匹配，手动纠错不再改变歌曲标题。</div></div>
-                <h2 class="section-title">输出预览</h2>
-                <div class="preview-container">
-                    <div class="preview-header"><div class="preview-title">实时预览</div><div class="preview-controls"><button class="preview-control-btn" onclick="refreshPreview()">🔄 刷新</button><button class="preview-control-btn" onclick="clearPreview()">🗑️ 清空</button><button class="preview-control-btn" id="editPreviewBtn" onclick="enablePreviewEditing()">✏️ 编辑</button><button class="preview-control-btn" id="savePreviewBtn" onclick="savePreviewEdits()">💾 保存</button></div></div>
-                    <div class="preview-content" id="previewContent"><div class="preview-empty">暂无预览内容<br>请先上传文件并设置歌曲参数</div></div>
-                </div>
+                <div class="preview-content" id="previewContent"><div class="preview-empty">暂无预览内容<br>请先上传文件并设置歌曲参数</div></div>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="save-status" id="saveStatus"></div>
-    <div class="context-menu" id="contextMenu">
-        <div class="context-menu-item" onclick="showCorrectionDialog()">🎯 手动匹配歌词文件</div>
-        <div class="context-menu-item" onclick="rematchCurrentSong()">🔄 清除手动匹配/重试自动</div>
-        <div class="context-menu-item" onclick="copySongName()">📋 复制歌曲名称</div>
-        <div class="context-menu-item" onclick="insertRowBelow()">➕ 在下方插入行</div>
+<div class="save-status" id="saveStatus"></div>
+<div class="context-menu" id="contextMenu">
+    <div class="context-menu-item" onclick="showCorrectionDialog()">🎯 手动匹配歌词文件</div>
+    <div class="context-menu-item" onclick="rematchCurrentSong()">🔄 清除手动匹配/重试自动</div>
+    <div class="context-menu-item" onclick="copySongName()">📋 复制歌曲名称</div>
+    <div class="context-menu-item" onclick="insertRowBelow()">➕ 在下方插入行</div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="correction-dialog" id="correctionDialog">
+    <div class="correction-header"><span>手动匹配歌词文件</span><button style="background:none;border:none;color:white;cursor:pointer;font-size:16px;" onclick="closeCorrectionDialog()">×</button></div>
+    <div class="correction-body">
+        <div><p><strong>当前歌曲:</strong> <span id="currentSongName"></span></p><p style="font-size:12px;color:#666;">搜索并选择正确的LRC文件，歌曲标题将保持不变。</p></div>
+        <div style="margin-top:15px;"><input type="text" id="searchCorrectionInput" style="width:100%;padding:8px;" placeholder="输入歌词文件名或歌名关键词搜索"><button class="btn-primary" onclick="searchSongsForCorrection()" style="width:100%;margin-top:8px;">搜索</button></div>
+        <div class="search-results" id="searchCorrectionResults" style="display:none;"></div>
     </div>
+    <div class="correction-footer"><button class="btn-danger" onclick="closeCorrectionDialog()">取消</button></div>
+</div>
 
-    <div class="overlay" id="overlay"></div>
-    <div class="correction-dialog" id="correctionDialog">
-        <div class="correction-header"><span>手动匹配歌词文件</span><button style="background:none;border:none;color:white;cursor:pointer;font-size:16px;" onclick="closeCorrectionDialog()">×</button></div>
-        <div class="correction-body">
-            <div><p><strong>当前歌曲:</strong> <span id="currentSongName"></span></p><p style="font-size:12px;color:#666;">下方搜索并选择正确的LRC文件，歌曲标题将保持不变。</p></div>
-            <div style="margin-top:15px;"><input type="text" id="searchCorrectionInput" style="width:100%;padding:8px;" placeholder="输入歌词文件名或歌名关键词搜索"><button class="btn-primary" onclick="searchSongsForCorrection()" style="width:100%;margin-top:8px;">搜索</button></div>
-            <div class="search-results" id="searchCorrectionResults" style="display:none;"></div>
-        </div>
-        <div class="correction-footer"><button class="btn-danger" onclick="closeCorrectionDialog()">取消</button></div>
-    </div>
+<script>
+    // --- 全局状态 ---
+    let lrcFiles = {};
+    let songRows = [];
+    let manualMapping = {};
+    let AUTOCOMPLETE_MAX = 8;
+    let previewUpdateTimer = null;
+    let currentContextRowId = null;
+    let autoSaveTimer = null;
+    let isPreviewEditing = false;
+    let originalPreviewContent = '';
+    let editedLyricsContent = null;
 
-    <script>
-        // --- 全局状态 ---
-        let lrcFiles = {};   // { fileNameNoExt: {name, content, source} }
-        let songRows = [];   // [{id, songName, minutes, seconds, duration}]
-        let manualMapping = {};  // { rowId: correctedFileName }  手动指定的歌词文件（不改变歌曲标题）
-        let AUTOCOMPLETE_MAX = 8;
-        let previewUpdateTimer = null;
-        let currentContextRowId = null;
-        let autoSaveTimer = null;
-        let isPreviewEditing = false;
-        let originalPreviewContent = '';
-        let editedLyricsContent = null;
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('lrcFiles').addEventListener('change', handleFileUpload);
+        // 默认创建 10 行，让用户一开始就看到更多行（竖屏友好）
+        for (let i = 0; i < 10; i++) addSongRow();
+        updateIndexes();
+        setupRealTimePreview();
+        document.addEventListener('click', () => document.getElementById('contextMenu').style.display = 'none');
+        tryAutoLoadProgress();
+        document.getElementById('searchInput').addEventListener('keyup', (e) => e.key === 'Enter' && searchSongs());
+        window.addEventListener('resize', () => { if(previewUpdateTimer) clearTimeout(previewUpdateTimer); schedulePreviewUpdate(); });
+    });
 
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('lrcFiles').addEventListener('change', handleFileUpload);
-            for (let i = 0; i < 3; i++) addSongRow();
-            updateIndexes();
-            setupRealTimePreview();
-            document.addEventListener('click', () => document.getElementById('contextMenu').style.display = 'none');
-            tryAutoLoadProgress();
-            document.getElementById('searchInput').addEventListener('keyup', (e) => e.key === 'Enter' && searchSongs());
+    // ----- 智能匹配算法 -----
+    function smartMatch(songName, fileName) {
+        if (!songName) return true;
+        const filePureName = extractSongNameFromFileName(fileName);
+        const normalize = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+        const normSong = normalize(songName);
+        const normFile = normalize(filePureName);
+        if (normSong.includes(normFile) || normFile.includes(normSong)) return true;
+        const songClean = songName.toLowerCase().replace(/\s/g, '');
+        const fileClean = fileName.toLowerCase().replace(/\s/g, '');
+        for (let ch of songClean) if (!fileClean.includes(ch)) return false;
+        return true;
+    }
+
+    function getMatchedFile(songName, rowId) {
+        if (rowId && manualMapping[rowId] && lrcFiles[manualMapping[rowId]]) {
+            return { fileName: manualMapping[rowId], fileData: lrcFiles[manualMapping[rowId]], source: 'manual' };
+        }
+        const matchedFiles = Object.keys(lrcFiles).filter(fname => smartMatch(songName, fname));
+        if (matchedFiles.length === 0) return null;
+        return { fileName: matchedFiles[0], fileData: lrcFiles[matchedFiles[0]], source: 'auto' };
+    }
+
+    function showCorrectionDialog() {
+        if (!currentContextRowId) return;
+        const row = songRows.find(r => r.id === currentContextRowId);
+        if (!row) return;
+        document.getElementById('currentSongName').textContent = row.songName || '未命名';
+        document.getElementById('correctionDialog').style.display = 'block';
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('contextMenu').style.display = 'none';
+        document.getElementById('searchCorrectionResults').style.display = 'none';
+        document.getElementById('searchCorrectionInput').value = '';
+    }
+
+    function closeCorrectionDialog() {
+        document.getElementById('correctionDialog').style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
+    }
+
+    function searchSongsForCorrection() {
+        const query = document.getElementById('searchCorrectionInput').value.trim();
+        if (!query) return;
+        const resultsContainer = document.getElementById('searchCorrectionResults');
+        resultsContainer.innerHTML = '';
+        const matches = Object.keys(lrcFiles).filter(fname => {
+            const display = extractSongNameFromFileName(fname);
+            return display.toLowerCase().includes(query.toLowerCase()) || fname.toLowerCase().includes(query.toLowerCase());
         });
-
-        // ----- 智能匹配算法（核心修复）-----
-        function smartMatch(songName, fileName) {
-            if (!songName) return true;
-            // 提取文件名中的纯歌名部分（去掉歌手信息）
-            const filePureName = extractSongNameFromFileName(fileName);
-            // 归一化：转小写，移除标点符号、空格、特殊字符，保留中文字符、字母、数字
-            const normalize = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
-            const normSong = normalize(songName);
-            const normFile = normalize(filePureName);
-            // 包含关系匹配（如“岛island” 包含 “岛”）
-            if (normSong.includes(normFile) || normFile.includes(normSong)) return true;
-            // 备选：逐字符宽松匹配（保留原逻辑但不作为主要，避免错误匹配）
-            const songClean = songName.toLowerCase().replace(/\s/g, '');
-            const fileClean = fileName.toLowerCase().replace(/\s/g, '');
-            for (let ch of songClean) if (!fileClean.includes(ch)) return false;
-            return true;
-        }
-
-        // 获取匹配的文件（优先手动映射）
-        function getMatchedFile(songName, rowId) {
-            // 1. 手动映射优先
-            if (rowId && manualMapping[rowId] && lrcFiles[manualMapping[rowId]]) {
-                return { fileName: manualMapping[rowId], fileData: lrcFiles[manualMapping[rowId]], source: 'manual' };
-            }
-            // 2. 智能自动匹配
-            const matchedFiles = Object.keys(lrcFiles).filter(fname => smartMatch(songName, fname));
-            if (matchedFiles.length === 0) return null;
-            return { fileName: matchedFiles[0], fileData: lrcFiles[matchedFiles[0]], source: 'auto' };
-        }
-
-        // --- 手动纠错对话框（不改变歌曲标题）---
-        function showCorrectionDialog() {
-            if (!currentContextRowId) return;
-            const row = songRows.find(r => r.id === currentContextRowId);
-            if (!row) return;
-            document.getElementById('currentSongName').textContent = row.songName || '未命名';
-            document.getElementById('correctionDialog').style.display = 'block';
-            document.getElementById('overlay').style.display = 'block';
-            document.getElementById('contextMenu').style.display = 'none';
-            document.getElementById('searchCorrectionResults').style.display = 'none';
-            document.getElementById('searchCorrectionInput').value = '';
-        }
-
-        function closeCorrectionDialog() {
-            document.getElementById('correctionDialog').style.display = 'none';
-            document.getElementById('overlay').style.display = 'none';
-        }
-
-        function searchSongsForCorrection() {
-            const query = document.getElementById('searchCorrectionInput').value.trim();
-            if (!query) return;
-            const resultsContainer = document.getElementById('searchCorrectionResults');
-            resultsContainer.innerHTML = '';
-            const matches = Object.keys(lrcFiles).filter(fname => {
-                const display = extractSongNameFromFileName(fname);
-                return display.toLowerCase().includes(query.toLowerCase()) || fname.toLowerCase().includes(query.toLowerCase());
+        if (matches.length === 0) {
+            resultsContainer.innerHTML = '<div style="padding:15px;text-align:center;">未找到匹配的歌词文件</div>';
+        } else {
+            matches.forEach(fname => {
+                const displayName = extractSongNameFromFileName(fname);
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.innerHTML = `<strong>${escapeHtml(displayName)}</strong><br><small style="color:#7f8c8d;">文件: ${escapeHtml(fname)}</small>`;
+                div.onclick = () => {
+                    manualMapping[currentContextRowId] = fname;
+                    addLog(`✅ 已手动指定歌曲「${songRows.find(r=>r.id===currentContextRowId)?.songName}」使用歌词文件: ${fname}`, 'success');
+                    closeCorrectionDialog();
+                    schedulePreviewUpdate();
+                    updateManualBadge(currentContextRowId);
+                };
+                resultsContainer.appendChild(div);
             });
-            if (matches.length === 0) {
-                resultsContainer.innerHTML = '<div style="padding:15px;text-align:center;">未找到匹配的歌词文件</div>';
-            } else {
-                matches.forEach(fname => {
-                    const displayName = extractSongNameFromFileName(fname);
-                    const div = document.createElement('div');
-                    div.className = 'search-result-item';
-                    div.innerHTML = `<strong>${escapeHtml(displayName)}</strong><br><small style="color:#7f8c8d;">文件: ${escapeHtml(fname)}</small>`;
-                    div.onclick = () => {
-                        // 建立手动映射，不修改歌曲标题输入框
-                        manualMapping[currentContextRowId] = fname;
-                        addLog(`✅ 已手动指定歌曲「${songRows.find(r=>r.id===currentContextRowId)?.songName}」使用歌词文件: ${fname}`, 'success');
-                        closeCorrectionDialog();
-                        schedulePreviewUpdate();
-                        // 刷新表格显示手动标记
-                        updateManualBadge(currentContextRowId);
-                    };
-                    resultsContainer.appendChild(div);
-                });
+        }
+        resultsContainer.style.display = 'block';
+    }
+
+    function updateManualBadge(rowId) {
+        const row = document.getElementById(rowId);
+        if (!row) return;
+        const songCell = row.querySelector('.song-name-column');
+        let badge = songCell.querySelector('.manual-match-badge');
+        if (manualMapping[rowId]) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'manual-match-badge';
+                badge.textContent = '已手动指定';
+                songCell.appendChild(badge);
             }
-            resultsContainer.style.display = 'block';
-        }
+        } else if (badge) badge.remove();
+    }
 
-        function updateManualBadge(rowId) {
-            const row = document.getElementById(rowId);
-            if (!row) return;
-            const songCell = row.querySelector('.song-name-column');
-            let badge = songCell.querySelector('.manual-match-badge');
-            if (manualMapping[rowId]) {
-                if (!badge) {
-                    badge = document.createElement('span');
-                    badge.className = 'manual-match-badge';
-                    badge.textContent = '已手动指定';
-                    songCell.appendChild(badge);
-                }
-            } else if (badge) badge.remove();
+    function rematchCurrentSong() {
+        if (!currentContextRowId) return;
+        if (manualMapping[currentContextRowId]) {
+            delete manualMapping[currentContextRowId];
+            addLog(`已清除手动指定，将重新自动匹配`, 'info');
+            updateManualBadge(currentContextRowId);
+            schedulePreviewUpdate();
+        } else {
+            addLog(`当前为自动匹配模式，无需清除`, 'info');
         }
+        document.getElementById('contextMenu').style.display = 'none';
+    }
 
-        function rematchCurrentSong() {
-            if (!currentContextRowId) return;
-            if (manualMapping[currentContextRowId]) {
-                delete manualMapping[currentContextRowId];
-                addLog(`已清除手动指定，将重新自动匹配`, 'info');
-                updateManualBadge(currentContextRowId);
-                schedulePreviewUpdate();
-            } else {
-                addLog(`当前为自动匹配模式，无需清除`, 'info');
-            }
-            document.getElementById('contextMenu').style.display = 'none';
-        }
+    function copySongName() {
+        if (!currentContextRowId) return;
+        const row = songRows.find(r => r.id === currentContextRowId);
+        if (row?.songName) navigator.clipboard.writeText(row.songName).then(()=>addLog(`已复制: ${row.songName}`,'success'));
+        document.getElementById('contextMenu').style.display = 'none';
+    }
 
-        function copySongName() {
-            if (!currentContextRowId) return;
-            const row = songRows.find(r => r.id === currentContextRowId);
-            if (row?.songName) navigator.clipboard.writeText(row.songName).then(()=>addLog(`已复制: ${row.songName}`,'success'));
-            document.getElementById('contextMenu').style.display = 'none';
-        }
+    function insertRowBelow() {
+        if (!currentContextRowId) return;
+        const idx = songRows.findIndex(r => r.id === currentContextRowId);
+        if (idx !== -1) addSongRowAtPosition(idx + 1);
+        document.getElementById('contextMenu').style.display = 'none';
+    }
 
-        function insertRowBelow() {
-            if (!currentContextRowId) return;
-            const idx = songRows.findIndex(r => r.id === currentContextRowId);
-            if (idx !== -1) addSongRowAtPosition(idx + 1);
-            document.getElementById('contextMenu').style.display = 'none';
-        }
+    function addSongRowAtPosition(pos, songName='', minutes='', seconds='', duration=10) {
+        const tbody = document.getElementById('songsTableBody');
+        const rowId = 'row_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);
+        const row = document.createElement('tr');
+        row.id = rowId;
+        row.innerHTML = `<td class="index-column index-cell">${pos+1}</td>
+            <td class="song-name-column"><input type="text" class="song-input" value="${escapeHtml(songName)}" placeholder="输入歌曲名称"></td>
+            <td class="start-time-column"><div class="time-input-group"><input type="number" class="minute-input time-input" value="${minutes}" placeholder="分" min="0"><span class="time-separator">:</span><input type="number" class="second-input time-input" value="${seconds}" placeholder="秒" min="0" max="59"></div></td>
+            <td class="duration-column"><input type="number" class="duration-input" value="${duration}" step="0.1" min="1"></td>
+            <td class="action-column"><div class="action-buttons"><button class="btn-primary action-btn" onclick="insertRowAt('${rowId}')">插入</button><button class="btn-danger action-btn" type="button">删除</button></div></td>`;
+        if (pos >= tbody.children.length) tbody.appendChild(row);
+        else tbody.insertBefore(row, tbody.children[pos]);
+        songRows.splice(pos, 0, { id: rowId, songName, minutes, seconds, duration });
+        bindRowEvents(row, rowId);
+        updateIndexes();
+        return rowId;
+    }
 
-        function addSongRowAtPosition(pos, songName='', minutes='', seconds='', duration=10) {
-            const tbody = document.getElementById('songsTableBody');
-            const rowId = 'row_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);
-            const row = document.createElement('tr');
-            row.id = rowId;
-            row.innerHTML = `<td class="index-column index-cell">${pos+1}</td>
-                <td class="song-name-column"><input type="text" class="song-input" value="${escapeHtml(songName)}" placeholder="输入歌曲名称"></td>
-                <td class="start-time-column"><div class="time-input-group"><input type="number" class="minute-input time-input" value="${minutes}" placeholder="分" min="0"><span class="time-separator">:</span><input type="number" class="second-input time-input" value="${seconds}" placeholder="秒" min="0" max="59"></div></td>
-                <td class="duration-column"><input type="number" class="duration-input" value="${duration}" step="0.1" min="1"></td>
-                <td class="action-column"><div class="action-buttons"><button class="btn-primary action-btn" onclick="insertRowAt('${rowId}')">插入</button><button class="btn-danger action-btn" type="button">删除</button></div></td>`;
-            if (pos >= tbody.children.length) tbody.appendChild(row);
-            else tbody.insertBefore(row, tbody.children[pos]);
-            songRows.splice(pos, 0, { id: rowId, songName, minutes, seconds, duration });
-            bindRowEvents(row, rowId);
-            updateIndexes();
-            return rowId;
-        }
+    function insertRowAt(rowId) {
+        const idx = songRows.findIndex(r => r.id === rowId);
+        if (idx !== -1) addSongRowAtPosition(idx+1);
+    }
 
-        function insertRowAt(rowId) {
-            const idx = songRows.findIndex(r => r.id === rowId);
-            if (idx !== -1) addSongRowAtPosition(idx+1);
-        }
-
-        function bindRowEvents(row, rowId) {
-            const songInput = row.querySelector('.song-input');
-            const minuteInput = row.querySelector('.minute-input');
-            const secondInput = row.querySelector('.second-input');
-            const durationInput = row.querySelector('.duration-input');
-            const delBtn = row.querySelector('.action-btn.btn-danger');
-            const update = () => { updateSongRow(rowId); schedulePreviewUpdate(); };
-            songInput.addEventListener('input', () => { 
-                updateSongRow(rowId);
-                // 用户手动修改歌名后，清除该行的手动映射（因为歌名变了，之前的映射可能无效）
-                if (manualMapping[rowId]) delete manualMapping[rowId];
-                updateManualBadge(rowId);
-                schedulePreviewUpdate();
-            });
-            minuteInput.addEventListener('input', update);
-            secondInput.addEventListener('input', update);
-            durationInput.addEventListener('input', update);
-            delBtn.addEventListener('click', () => deleteSongRow(rowId));
-            row.addEventListener('contextmenu', (e) => showContextMenu(e, rowId));
-            setupAutoComplete(songInput, () => Object.keys(lrcFiles), rowId);
-        }
-
-        function deleteSongRow(rowId) {
-            document.getElementById(rowId)?.remove();
-            const idx = songRows.findIndex(r => r.id === rowId);
-            if (idx !== -1) songRows.splice(idx, 1);
+    function bindRowEvents(row, rowId) {
+        const songInput = row.querySelector('.song-input');
+        const minuteInput = row.querySelector('.minute-input');
+        const secondInput = row.querySelector('.second-input');
+        const durationInput = row.querySelector('.duration-input');
+        const delBtn = row.querySelector('.action-btn.btn-danger');
+        const update = () => { updateSongRow(rowId); schedulePreviewUpdate(); };
+        songInput.addEventListener('input', () => { 
+            updateSongRow(rowId);
             if (manualMapping[rowId]) delete manualMapping[rowId];
-            updateIndexes();
+            updateManualBadge(rowId);
             schedulePreviewUpdate();
-        }
+        });
+        minuteInput.addEventListener('input', update);
+        secondInput.addEventListener('input', update);
+        durationInput.addEventListener('input', update);
+        delBtn.addEventListener('click', () => deleteSongRow(rowId));
+        row.addEventListener('contextmenu', (e) => showContextMenu(e, rowId));
+        setupAutoComplete(songInput, () => Object.keys(lrcFiles), rowId);
+    }
 
-        function updateSongRow(rowId) {
-            const row = document.getElementById(rowId);
-            if (!row) return;
+    function deleteSongRow(rowId) {
+        document.getElementById(rowId)?.remove();
+        const idx = songRows.findIndex(r => r.id === rowId);
+        if (idx !== -1) songRows.splice(idx, 1);
+        if (manualMapping[rowId]) delete manualMapping[rowId];
+        updateIndexes();
+        schedulePreviewUpdate();
+    }
+
+    function updateSongRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (!row) return;
+        const inputs = row.getElementsByTagName('input');
+        const idx = songRows.findIndex(r => r.id === rowId);
+        if (idx !== -1) songRows[idx] = { id: rowId, songName: inputs[0].value, minutes: inputs[1].value, seconds: inputs[2].value, duration: parseFloat(inputs[3].value) || 10 };
+    }
+
+    function applyBatchSettings() {
+        const mins = document.getElementById('batchMinutes').value, secs = document.getElementById('batchSeconds').value, dur = document.getElementById('batchDuration').value;
+        for (let song of songRows) {
+            const row = document.getElementById(song.id);
+            if (!row) continue;
             const inputs = row.getElementsByTagName('input');
-            const idx = songRows.findIndex(r => r.id === rowId);
-            if (idx !== -1) songRows[idx] = { id: rowId, songName: inputs[0].value, minutes: inputs[1].value, seconds: inputs[2].value, duration: parseFloat(inputs[3].value) || 10 };
+            if (mins !== '') inputs[1].value = mins;
+            if (secs !== '') inputs[2].value = secs;
+            if (dur) inputs[3].value = dur;
+            updateSongRow(song.id);
         }
+        addLog('批量设置已应用', 'success');
+        schedulePreviewUpdate();
+    }
 
-        function applyBatchSettings() {
-            const mins = document.getElementById('batchMinutes').value, secs = document.getElementById('batchSeconds').value, dur = document.getElementById('batchDuration').value;
-            for (let song of songRows) {
-                const row = document.getElementById(song.id);
-                if (!row) continue;
-                const inputs = row.getElementsByTagName('input');
-                if (mins !== '') inputs[1].value = mins;
-                if (secs !== '') inputs[2].value = secs;
-                if (dur) inputs[3].value = dur;
-                updateSongRow(song.id);
+    function fillSongsByPlaylist() {
+        const playlist = document.getElementById('playlistInput').value.split('\n').map(l=>l.trim()).filter(l=>l);
+        if (!playlist.length) { addLog('请输入歌单', 'error'); return; }
+        if (!Object.keys(lrcFiles).length) { addLog('请先上传LRC文件', 'error'); return; }
+        document.getElementById('songsTableBody').innerHTML = '';
+        songRows = [];
+        manualMapping = {};
+        for (let songName of playlist) addSongRow(songName, '', '', 10);
+        addLog(`已按歌单填充 ${playlist.length} 首歌曲`, 'success');
+        schedulePreviewUpdate();
+    }
+
+    function autoFillSongs() {
+        const names = Object.keys(lrcFiles);
+        if (!names.length) { addLog('请先上传LRC文件', 'error'); return; }
+        document.getElementById('songsTableBody').innerHTML = '';
+        songRows = [];
+        manualMapping = {};
+        for (let fname of names) addSongRow(extractSongNameFromFileName(fname), '', '', 10);
+        addLog(`已按文件名填充 ${names.length} 首歌曲`, 'success');
+        schedulePreviewUpdate();
+    }
+
+    function addSongRow(songName='', minutes='', seconds='', duration=10) {
+        const tbody = document.getElementById('songsTableBody');
+        const rowId = 'row_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);
+        const row = document.createElement('tr');
+        row.id = rowId;
+        row.innerHTML = `<td class="index-column index-cell">${tbody.children.length+1}</td>
+            <td class="song-name-column"><input type="text" class="song-input" value="${escapeHtml(songName)}" placeholder="输入歌曲名称"></td>
+            <td class="start-time-column"><div class="time-input-group"><input type="number" class="minute-input time-input" value="${minutes}" placeholder="分" min="0"><span class="time-separator">:</span><input type="number" class="second-input time-input" value="${seconds}" placeholder="秒" min="0" max="59"></div></td>
+            <td class="duration-column"><input type="number" class="duration-input" value="${duration}" step="0.1" min="1"></td>
+            <td class="action-column"><div class="action-buttons"><button class="btn-primary action-btn" onclick="insertRowAt('${rowId}')">插入</button><button class="btn-danger action-btn" type="button">删除</button></div></td>`;
+        tbody.appendChild(row);
+        songRows.push({ id: rowId, songName, minutes, seconds, duration });
+        bindRowEvents(row, rowId);
+        updateIndexes();
+    }
+
+    function updateIndexes() { document.querySelectorAll('#songsTableBody tr').forEach((row,i)=>{ row.querySelector('.index-cell').textContent = i+1; }); }
+
+    function extractLyrics(lrcContent, startTime, duration) {
+        const lines = lrcContent.split(/\r?\n/);
+        const extracted = [];
+        const endTime = startTime + duration;
+        for (let line of lines) {
+            const timeTags = [...line.matchAll(/\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]/g)];
+            const text = line.replace(/\[(?:\d{1,2}:\d{1,2}(?:\.\d{1,3})?)\]/g, '').trim();
+            if (!timeTags.length || !text) continue;
+            for (let tag of timeTags) {
+                const mins = parseInt(tag[1]), secs = parseInt(tag[2]), ms = tag[3] ? parseInt(tag[3].padEnd(3,'0')) : 0;
+                const total = mins*60 + secs + ms/1000;
+                if (total >= startTime && total <= endTime) { extracted.push(text); break; }
             }
-            addLog('批量设置已应用', 'success');
-            schedulePreviewUpdate();
         }
+        return extracted;
+    }
 
-        function fillSongsByPlaylist() {
-            const playlist = document.getElementById('playlistInput').value.split('\n').map(l=>l.trim()).filter(l=>l);
-            if (!playlist.length) { addLog('请输入歌单', 'error'); return; }
-            if (!Object.keys(lrcFiles).length) { addLog('请先上传LRC文件', 'error'); return; }
-            document.getElementById('songsTableBody').innerHTML = '';
-            songRows = [];
-            manualMapping = {};
-            for (let songName of playlist) addSongRow(songName, '', '', 10);
-            addLog(`已按歌单填充 ${playlist.length} 首歌曲`, 'success');
-            schedulePreviewUpdate();
+    function updatePreview() {
+        if (editedLyricsContent && !isPreviewEditing) return;
+        if (!Object.keys(lrcFiles).length || !songRows.length) { showPreviewEmpty(); return; }
+        let html = '';
+        let totalLines = 0, validSongs = 0;
+        for (let i=0; i<songRows.length; i++) {
+            const song = songRows[i];
+            if (!song.songName.trim()) continue;
+            const mins = song.minutes === '' ? 0 : parseInt(song.minutes) || 0;
+            const secs = song.seconds === '' ? 0 : parseInt(song.seconds) || 0;
+            const start = mins*60 + secs;
+            const matched = getMatchedFile(song.songName, song.id);
+            const badge = matched?.source === 'manual' ? '<span style="font-size:11px;background:#27ae60;color:white;padding:2px 6px;border-radius:12px;margin-left:8px;">手动指定</span>' : '';
+            html += `<div class="preview-song-title">${i+1}. 《${escapeHtml(song.songName)}》${badge}</div>`;
+            if (!matched) { html += `<div class="preview-lyric-line" style="color:#e74c3c;">❌ 未找到匹配的歌词文件</div>`; continue; }
+            const lyrics = extractLyrics(matched.fileData.content, start, song.duration);
+            if (lyrics.length) { lyrics.forEach(l=>html+=`<div class="preview-lyric-line">${escapeHtml(l)}</div>`); totalLines+=lyrics.length; validSongs++; }
+            else html += `<div class="preview-lyric-line" style="color:#f39c12;">⚠️ 该时间段内无歌词</div>`;
+            if (i < songRows.length-1) html += `<div style="margin:10px 0; border-top:1px dashed #eee;"></div>`;
         }
+        html += `<div class="preview-stats">共 ${validSongs} 首歌曲，${totalLines} 行歌词 | 手动指定: ${Object.keys(manualMapping).length}</div>`;
+        document.getElementById('previewContent').innerHTML = html;
+    }
 
-        function autoFillSongs() {
-            const names = Object.keys(lrcFiles);
-            if (!names.length) { addLog('请先上传LRC文件', 'error'); return; }
-            document.getElementById('songsTableBody').innerHTML = '';
-            songRows = [];
-            manualMapping = {};
-            for (let fname of names) addSongRow(extractSongNameFromFileName(fname), '', '', 10);
-            addLog(`已按文件名填充 ${names.length} 首歌曲`, 'success');
-            schedulePreviewUpdate();
-        }
+    function showPreviewEmpty() { document.getElementById('previewContent').innerHTML = '<div class="preview-empty">暂无预览内容</div>'; }
+    function schedulePreviewUpdate() { if (previewUpdateTimer) clearTimeout(previewUpdateTimer); previewUpdateTimer = setTimeout(updatePreview, 300); }
+    function setupRealTimePreview() { document.addEventListener('input', (e) => { if (e.target.closest('#songsTableBody') || e.target.id.includes('batch')) schedulePreviewUpdate(); }); }
+    function refreshPreview() { if (editedLyricsContent && !confirm('刷新将丢失编辑内容，确定？')) return; editedLyricsContent = null; if(isPreviewEditing) enablePreviewEditing(); updatePreview(); }
+    function clearPreview() { editedLyricsContent = null; if(isPreviewEditing) enablePreviewEditing(); showPreviewEmpty(); }
+    function enablePreviewEditing() {
+        const pc=document.getElementById('previewContent'); 
+        if(isPreviewEditing){ 
+            pc.contentEditable=false; 
+            document.getElementById('editPreviewBtn').classList.remove('edit-mode-active'); 
+            document.getElementById('editPreviewBtn').textContent='✏️ 编辑'; 
+            isPreviewEditing=false; 
+        } else { 
+            if(pc.querySelector('.preview-empty')){ addLog('请先生成预览内容','warning'); return; } 
+            originalPreviewContent=pc.innerHTML; 
+            pc.contentEditable=true; 
+            pc.focus(); 
+            document.getElementById('editPreviewBtn').classList.add('edit-mode-active'); 
+            document.getElementById('editPreviewBtn').textContent='❌ 取消'; 
+            isPreviewEditing=true; 
+        } 
+    }
+    function savePreviewEdits() { if(!isPreviewEditing){ addLog('请先进入编辑模式','warning'); return; } editedLyricsContent = document.getElementById('previewContent').innerHTML; enablePreviewEditing(); addLog('编辑内容已保存','success'); }
 
-        function addSongRow(songName='', minutes='', seconds='', duration=10) {
-            const tbody = document.getElementById('songsTableBody');
-            const rowId = 'row_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);
-            const row = document.createElement('tr');
-            row.id = rowId;
-            row.innerHTML = `<td class="index-column index-cell">${tbody.children.length+1}</td>
-                <td class="song-name-column"><input type="text" class="song-input" value="${escapeHtml(songName)}" placeholder="输入歌曲名称"></td>
-                <td class="start-time-column"><div class="time-input-group"><input type="number" class="minute-input time-input" value="${minutes}" placeholder="分" min="0"><span class="time-separator">:</span><input type="number" class="second-input time-input" value="${seconds}" placeholder="秒" min="0" max="59"></div></td>
-                <td class="duration-column"><input type="number" class="duration-input" value="${duration}" step="0.1" min="1"></td>
-                <td class="action-column"><div class="action-buttons"><button class="btn-primary action-btn" onclick="insertRowAt('${rowId}')">插入</button><button class="btn-danger action-btn" type="button">删除</button></div></td>`;
-            tbody.appendChild(row);
-            songRows.push({ id: rowId, songName, minutes, seconds, duration });
-            bindRowEvents(row, rowId);
-            updateIndexes();
-        }
-
-        function updateIndexes() { document.querySelectorAll('#songsTableBody tr').forEach((row,i)=>{ row.querySelector('.index-cell').textContent = i+1; }); }
-
-        // --- 预览与提取 ---
-        function extractLyrics(lrcContent, startTime, duration) {
-            const lines = lrcContent.split(/\r?\n/);
-            const extracted = [];
-            const endTime = startTime + duration;
-            for (let line of lines) {
-                const timeTags = [...line.matchAll(/\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]/g)];
-                const text = line.replace(/\[(?:\d{1,2}:\d{1,2}(?:\.\d{1,3})?)\]/g, '').trim();
-                if (!timeTags.length || !text) continue;
-                for (let tag of timeTags) {
-                    const mins = parseInt(tag[1]), secs = parseInt(tag[2]), ms = tag[3] ? parseInt(tag[3].padEnd(3,'0')) : 0;
-                    const total = mins*60 + secs + ms/1000;
-                    if (total >= startTime && total <= endTime) { extracted.push(text); break; }
-                }
-            }
-            return extracted;
-        }
-
-        function updatePreview() {
-            if (editedLyricsContent && !isPreviewEditing) return;
-            if (!Object.keys(lrcFiles).length || !songRows.length) { showPreviewEmpty(); return; }
-            let html = '';
-            let totalLines = 0, validSongs = 0;
+    function processSongs() {
+        if (!Object.keys(lrcFiles).length) { addLog('请先上传LRC文件','error'); return; }
+        if (!songRows.length) { addLog('请先添加歌曲','error'); return; }
+        let doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>歌词提取</title><style>body{font-family:Arial;margin:20px;} h2{color:#3498db;}</style></head><body><h1>歌词提取</h1>`;
+        if (editedLyricsContent) {
+            doc += editedLyricsContent.replace(/class="preview-[^"]*"/g, '').replace(/<div class="preview-stats">.*?<\/div>/, '');
+        } else {
             for (let i=0; i<songRows.length; i++) {
                 const song = songRows[i];
                 if (!song.songName.trim()) continue;
-                const mins = song.minutes === '' ? 0 : parseInt(song.minutes) || 0;
-                const secs = song.seconds === '' ? 0 : parseInt(song.seconds) || 0;
-                const start = mins*60 + secs;
+                const mins = song.minutes === '' ? 0 : parseInt(song.minutes)||0;
+                const secs = song.seconds === '' ? 0 : parseInt(song.seconds)||0;
                 const matched = getMatchedFile(song.songName, song.id);
-                const badge = matched?.source === 'manual' ? '<span style="font-size:11px;background:#27ae60;color:white;padding:2px 6px;border-radius:12px;margin-left:8px;">手动指定</span>' : '';
-                html += `<div class="preview-song-title">${i+1}. 《${escapeHtml(song.songName)}》${badge}</div>`;
-                if (!matched) { html += `<div class="preview-lyric-line" style="color:#e74c3c;">❌ 未找到匹配的歌词文件</div>`; continue; }
-                const lyrics = extractLyrics(matched.fileData.content, start, song.duration);
-                if (lyrics.length) { lyrics.forEach(l=>html+=`<div class="preview-lyric-line">${escapeHtml(l)}</div>`); totalLines+=lyrics.length; validSongs++; }
-                else html += `<div class="preview-lyric-line" style="color:#f39c12;">⚠️ 该时间段内无歌词</div>`;
-                if (i < songRows.length-1) html += `<div style="margin:10px 0; border-top:1px dashed #eee;"></div>`;
+                if (!matched) { addLog(`跳过 ${song.songName}：无匹配文件`,'warning'); continue; }
+                const lyrics = extractLyrics(matched.fileData.content, mins*60+secs, song.duration);
+                doc += `<h2>${i+1}. 《${escapeHtml(song.songName)}》</h2>`;
+                if (lyrics.length) lyrics.forEach(l=>doc+=`<p>${escapeHtml(l)}</p>`);
+                else doc+=`<p style="color:#999;">[该时间段无歌词]</p>`;
             }
-            html += `<div class="preview-stats">共 ${validSongs} 首歌曲，${totalLines} 行歌词 | 手动指定: ${Object.keys(manualMapping).length}</div>`;
-            document.getElementById('previewContent').innerHTML = html;
         }
+        doc += `</body></html>`;
+        const blob = new Blob([doc], {type:'application/msword'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'extracted_lyrics.doc'; a.click(); URL.revokeObjectURL(a.href);
+        addLog('导出成功','success');
+    }
 
-        function showPreviewEmpty() { document.getElementById('previewContent').innerHTML = '<div class="preview-empty">暂无预览内容</div>'; }
-        function schedulePreviewUpdate() { if (previewUpdateTimer) clearTimeout(previewUpdateTimer); previewUpdateTimer = setTimeout(updatePreview, 300); }
-        function setupRealTimePreview() { document.addEventListener('input', (e) => { if (e.target.closest('#songsTableBody') || e.target.id.includes('batch')) schedulePreviewUpdate(); }); }
-        function refreshPreview() { if (editedLyricsContent && !confirm('刷新将丢失编辑内容，确定？')) return; editedLyricsContent = null; if(isPreviewEditing) enablePreviewEditing(); updatePreview(); }
-        function clearPreview() { editedLyricsContent = null; if(isPreviewEditing) enablePreviewEditing(); showPreviewEmpty(); }
-        function enablePreviewEditing() { /* 保留原编辑功能 */ const pc=document.getElementById('previewContent'); if(isPreviewEditing){ pc.contentEditable=false; document.getElementById('editPreviewBtn').classList.remove('edit-mode-active'); document.getElementById('editPreviewBtn').textContent='✏️ 编辑'; isPreviewEditing=false; } else { if(pc.querySelector('.preview-empty')){ addLog('请先生成预览内容','warning'); return; } originalPreviewContent=pc.innerHTML; pc.contentEditable=true; pc.focus(); document.getElementById('editPreviewBtn').classList.add('edit-mode-active'); document.getElementById('editPreviewBtn').textContent='❌ 取消'; isPreviewEditing=true; } }
-        function savePreviewEdits() { if(!isPreviewEditing){ addLog('请先进入编辑模式','warning'); return; } editedLyricsContent = document.getElementById('previewContent').innerHTML; enablePreviewEditing(); addLog('编辑内容已保存','success'); }
+    async function handleFileUpload(e) {
+        const files = Array.from(e.target.files);
+        lrcFiles = {};
+        const fileListDiv = document.getElementById('fileList');
+        fileListDiv.innerHTML = '';
+        for(let f of files) {
+            const itemDiv = document.createElement('div'); itemDiv.className='file-item';
+            itemDiv.innerHTML = `<div class="file-name">${f.name}</div><div class="file-status status-ready">处理中...</div>`;
+            fileListDiv.appendChild(itemDiv);
+            try {
+                if(f.name.endsWith('.lrc')) {
+                    let text=await f.text(); let name=f.name.replace(/\.lrc$/i,'');
+                    lrcFiles[name]={name,content:text,source:f.name};
+                    itemDiv.querySelector('.file-status').textContent='已加载';
+                } else if(f.name.endsWith('.zip')){
+                    let zip=await JSZip.loadAsync(f);
+                    let count=0;
+                    for(let [path,entry] of Object.entries(zip.files)){
+                        if(!entry.dir && path.toLowerCase().endsWith('.lrc')){
+                            let content=await entry.async('text');
+                            let base=path.split('/').pop().replace(/\.lrc$/i,'');
+                            lrcFiles[base]={name:base,content,source:f.name};
+                            count++;
+                        }
+                    }
+                    itemDiv.querySelector('.file-status').textContent=`已提取 ${count} 个文件`;
+                } else { itemDiv.querySelector('.file-status').className='file-status status-error'; itemDiv.querySelector('.file-status').textContent='跳过'; }
+            } catch(err) { itemDiv.querySelector('.file-status').className='file-status status-error'; itemDiv.querySelector('.file-status').textContent='失败'; addLog(`处理失败: ${f.name} - ${err.message}`,'error'); }
+        }
+        addLog(`已加载 ${Object.keys(lrcFiles).length} 个LRC文件`,'success');
+        updatePreview();
+    }
 
-        // 处理导出
-        function processSongs() {
-            if (!Object.keys(lrcFiles).length) { addLog('请先上传LRC文件','error'); return; }
-            if (!songRows.length) { addLog('请先添加歌曲','error'); return; }
-            let doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>歌词提取</title><style>body{font-family:Arial;margin:20px;} h2{color:#3498db;}</style></head><body><h1>歌词提取</h1>`;
-            if (editedLyricsContent) {
-                doc += editedLyricsContent.replace(/class="preview-[^"]*"/g, '').replace(/<div class="preview-stats">.*?<\/div>/, '');
-            } else {
-                for (let i=0; i<songRows.length; i++) {
-                    const song = songRows[i];
-                    if (!song.songName.trim()) continue;
-                    const mins = song.minutes === '' ? 0 : parseInt(song.minutes)||0;
-                    const secs = song.seconds === '' ? 0 : parseInt(song.seconds)||0;
-                    const matched = getMatchedFile(song.songName, song.id);
-                    if (!matched) { addLog(`跳过 ${song.songName}：无匹配文件`,'warning'); continue; }
-                    const lyrics = extractLyrics(matched.fileData.content, mins*60+secs, song.duration);
-                    doc += `<h2>${i+1}. 《${escapeHtml(song.songName)}》</h2>`;
-                    if (lyrics.length) lyrics.forEach(l=>doc+=`<p>${escapeHtml(l)}</p>`);
-                    else doc+=`<p style="color:#999;">[该时间段无歌词]</p>`;
-                }
-            }
-            doc += `</body></html>`;
-            const blob = new Blob([doc], {type:'application/msword'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'extracted_lyrics.doc'; a.click(); URL.revokeObjectURL(a.href);
-            addLog('导出成功','success');
-        }
-
-        // 文件上传、日志、自动补全等辅助函数（保持原有逻辑，仅修复匹配和手动纠错）
-        async function handleFileUpload(e) { /* 与原来相同，略 */ 
-            const files = Array.from(e.target.files);
-            lrcFiles = {};
-            for(let f of files) { if(f.name.endsWith('.lrc')) { let text=await f.text(); let name=f.name.replace(/\.lrc$/i,''); lrcFiles[name]={name,content:text,source:f.name}; } else if(f.name.endsWith('.zip')){ let zip=await JSZip.loadAsync(f); for(let [path,entry] of Object.entries(zip.files)){ if(!entry.dir && path.toLowerCase().endsWith('.lrc')){ let content=await entry.async('text'); let base=path.split('/').pop().replace(/\.lrc$/i,''); lrcFiles[base]={name:base,content,source:f.name}; } } } }
-            addLog(`已加载 ${Object.keys(lrcFiles).length} 个LRC文件`,'success');
-            updatePreview();
-        }
-        function addLog(msg,type='info') { let log=document.getElementById('logContainer'); let div=document.createElement('div'); div.className=`log-entry log-${type}`; div.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`; log.appendChild(div); log.scrollTop=log.scrollHeight; }
-        function saveProgress() { let data={songRows:songRows.map(r=>({songName:r.songName,minutes:r.minutes,seconds:r.seconds,duration:r.duration})),playlist:document.getElementById('playlistInput').value,manualMapping,editedLyricsContent}; localStorage.setItem('lyricExtractorProgress',JSON.stringify(data)); addLog('进度已保存','success'); }
-        function loadProgress() { let raw=localStorage.getItem('lyricExtractorProgress'); if(!raw) return; let d=JSON.parse(raw); document.getElementById('songsTableBody').innerHTML=''; songRows=[]; manualMapping=d.manualMapping||{}; editedLyricsContent=d.editedLyricsContent; for(let s of d.songRows) addSongRow(s.songName,s.minutes,s.seconds,s.duration); document.getElementById('playlistInput').value=d.playlist||''; addLog('进度加载完成','success'); updatePreview(); }
-        function tryAutoLoadProgress() { if(localStorage.getItem('lyricExtractorProgress')) addLog('检测到上次保存的进度，可点击“加载进度”恢复','info'); }
-        function clearAll() { localStorage.removeItem('lyricExtractorProgress'); document.getElementById('lrcFiles').value=''; document.getElementById('songsTableBody').innerHTML=''; document.getElementById('playlistInput').value=''; lrcFiles={}; songRows=[]; manualMapping={}; editedLyricsContent=null; for(let i=0;i<3;i++) addSongRow(); updatePreview(); addLog('已清空所有数据','info'); }
-        function searchSongs() { let q=document.getElementById('searchInput').value.trim().toLowerCase(); let rows=document.querySelectorAll('#songsTableBody tr'); let cnt=0; rows.forEach(r=>{ let val=r.querySelector('.song-input')?.value.toLowerCase(); if(!q || val?.includes(q)) { r.style.display=''; cnt++; } else r.style.display='none'; }); document.getElementById('searchResultsCount').textContent=q?`找到 ${cnt} 项`:''; }
-        function setupAutoComplete(input,getData,rowId) { /* 保留原自动补全逻辑，只填充歌名，不清除手动映射 */ 
-            if(input._acWrap) input._acWrap.remove();
-            let wrapper=document.createElement('div'); wrapper.className='autocomplete-list'; wrapper.style.display='none'; document.body.appendChild(wrapper); input._acWrap=wrapper;
-            input.addEventListener('input',function(){ let val=this.value.trim().toLowerCase(); wrapper.innerHTML=''; if(!val){wrapper.style.display='none';return;} let cand=getData(); let matches=cand.filter(item=>extractSongNameFromFileName(item).toLowerCase().includes(val)); matches.slice(0,AUTOCOMPLETE_MAX).forEach(m=>{ let div=document.createElement('div'); div.className='autocomplete-item'; div.textContent=extractSongNameFromFileName(m); div.addEventListener('mousedown',(e)=>{ e.preventDefault(); input.value=extractSongNameFromFileName(m); if(manualMapping[rowId]) delete manualMapping[rowId]; updateSongRow(rowId); schedulePreviewUpdate(); wrapper.style.display='none'; }); wrapper.appendChild(div); });
-                if(wrapper.children.length){ let rect=input.getBoundingClientRect(); wrapper.style.left=rect.left+window.scrollX+'px'; wrapper.style.top=rect.bottom+window.scrollY+'px'; wrapper.style.width=rect.width+'px'; wrapper.style.display='block'; } else wrapper.style.display='none';
-            });
-            document.addEventListener('click',(e)=>{ if(e.target!==input && !wrapper.contains(e.target)) wrapper.style.display='none'; });
-        }
-        function extractSongNameFromFileName(fileName) { return fileName.split(' - ')[0].trim(); }
-        function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-        window.showContextMenu = function(e,rowId) { e.preventDefault(); currentContextRowId=rowId; let menu=document.getElementById('contextMenu'); menu.style.display='block'; menu.style.left=e.pageX+'px'; menu.style.top=e.pageY+'px'; };
-    </script>
+    function addLog(msg,type='info') { let log=document.getElementById('logContainer'); let div=document.createElement('div'); div.className=`log-entry log-${type}`; div.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`; log.appendChild(div); log.scrollTop=log.scrollHeight; }
+    function saveProgress() { let data={songRows:songRows.map(r=>({songName:r.songName,minutes:r.minutes,seconds:r.seconds,duration:r.duration})),playlist:document.getElementById('playlistInput').value,manualMapping,editedLyricsContent}; localStorage.setItem('lyricExtractorProgress',JSON.stringify(data)); addLog('进度已保存','success'); }
+    function loadProgress() { let raw=localStorage.getItem('lyricExtractorProgress'); if(!raw) return; let d=JSON.parse(raw); document.getElementById('songsTableBody').innerHTML=''; songRows=[]; manualMapping=d.manualMapping||{}; editedLyricsContent=d.editedLyricsContent; for(let s of d.songRows) addSongRow(s.songName,s.minutes,s.seconds,s.duration); document.getElementById('playlistInput').value=d.playlist||''; addLog('进度加载完成','success'); updatePreview(); }
+    function tryAutoLoadProgress() { if(localStorage.getItem('lyricExtractorProgress')) addLog('检测到上次保存的进度，可点击“加载进度”恢复','info'); }
+    function clearAll() { localStorage.removeItem('lyricExtractorProgress'); document.getElementById('lrcFiles').value=''; document.getElementById('songsTableBody').innerHTML=''; document.getElementById('playlistInput').value=''; lrcFiles={}; songRows=[]; manualMapping={}; editedLyricsContent=null; for(let i=0;i<10;i++) addSongRow(); updatePreview(); addLog('已清空所有数据','info'); }
+    function searchSongs() { let q=document.getElementById('searchInput').value.trim().toLowerCase(); let rows=document.querySelectorAll('#songsTableBody tr'); let cnt=0; rows.forEach(r=>{ let val=r.querySelector('.song-input')?.value.toLowerCase(); if(!q || val?.includes(q)) { r.style.display=''; cnt++; } else r.style.display='none'; }); document.getElementById('searchResultsCount').textContent=q?`找到 ${cnt} 项`:''; }
+    function setupAutoComplete(input,getData,rowId) {
+        if(input._acWrap) input._acWrap.remove();
+        let wrapper=document.createElement('div'); wrapper.className='autocomplete-list'; wrapper.style.display='none'; document.body.appendChild(wrapper); input._acWrap=wrapper;
+        input.addEventListener('input',function(){ let val=this.value.trim().toLowerCase(); wrapper.innerHTML=''; if(!val){wrapper.style.display='none';return;} let cand=getData(); let matches=cand.filter(item=>extractSongNameFromFileName(item).toLowerCase().includes(val)); matches.slice(0,AUTOCOMPLETE_MAX).forEach(m=>{ let div=document.createElement('div'); div.className='autocomplete-item'; div.textContent=extractSongNameFromFileName(m); div.addEventListener('mousedown',(e)=>{ e.preventDefault(); input.value=extractSongNameFromFileName(m); if(manualMapping[rowId]) delete manualMapping[rowId]; updateSongRow(rowId); schedulePreviewUpdate(); wrapper.style.display='none'; }); wrapper.appendChild(div); });
+            if(wrapper.children.length){ let rect=input.getBoundingClientRect(); wrapper.style.left=rect.left+window.scrollX+'px'; wrapper.style.top=rect.bottom+window.scrollY+'px'; wrapper.style.width=rect.width+'px'; wrapper.style.display='block'; } else wrapper.style.display='none';
+        });
+        document.addEventListener('click',(e)=>{ if(e.target!==input && !wrapper.contains(e.target)) wrapper.style.display='none'; });
+    }
+    function extractSongNameFromFileName(fileName) { return fileName.split(' - ')[0].trim(); }
+    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    window.showContextMenu = function(e,rowId) { e.preventDefault(); currentContextRowId=rowId; let menu=document.getElementById('contextMenu'); menu.style.display='block'; menu.style.left=e.pageX+'px'; menu.style.top=e.pageY+'px'; };
+</script>
 </body>
 </html>
