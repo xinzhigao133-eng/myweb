@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title>🎵 歌词提取工具（竖屏大容量版）</title>
+    <title>🎵 歌词提取工具（支持按行上传缺失LRC）</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -148,7 +148,7 @@
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 1000;
-            min-width: 180px;
+            min-width: 200px;
             display: none;
         }
         .context-menu-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
@@ -183,44 +183,17 @@
         .search-button { padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
         .manual-match-badge { background: #27ae60; color: white; font-size: 10px; padding: 2px 6px; border-radius: 12px; margin-left: 8px; vertical-align: middle; }
         
-        /* ========= 竖屏模式优化 - 表格显示更多行 ========= */
+        /* 竖屏优化 */
         @media (orientation: portrait) {
-            .main-content {
-                flex-direction: column;
-            }
-            .left-panel {
-                flex: 2;  /* 左侧占用更多空间 */
-                border-right: none;
-                border-bottom: 2px solid #f0f0f0;
-                overflow-y: auto;
-            }
-            .right-panel {
-                flex: 1;
-                min-height: 40vh;
-            }
-            .table-container {
-                flex: 1;
-                min-height: 55vh;  /* 占据超过一半的竖屏高度 */
-                max-height: 65vh;
-                overflow: auto;
-            }
-            /* 让表格内容更紧凑，显示更多行 */
-            td, th {
-                padding: 8px 6px;
-            }
-            .log-container {
-                max-height: 20vh;
-            }
-            .preview-container {
-                min-height: 200px;
-                flex: 1;
-            }
-            .button-group button {
-                padding: 10px 12px;
-                min-width: 90px;
-            }
+            .main-content { flex-direction: column; }
+            .left-panel { flex: 2; border-right: none; border-bottom: 2px solid #f0f0f0; }
+            .right-panel { flex: 1; min-height: 40vh; }
+            .table-container { flex: 1; min-height: 55vh; max-height: 65vh; }
+            td, th { padding: 8px 6px; }
+            .log-container { max-height: 20vh; }
+            .preview-container { min-height: 200px; flex: 1; }
+            .button-group button { padding: 10px 12px; min-width: 90px; }
         }
-        
         @media (orientation: landscape) and (min-height: 800px) {
             .table-container { max-height: 50vh; }
             .log-container { max-height: 25vh; }
@@ -231,8 +204,8 @@
 <body>
 <div class="container">
     <header>
-        <h1>🎵 歌词提取工具（蒋丞专用版）</h1>
-        <p>智能匹配 | 手动指定 | 歌单顺序 | 竖屏下显示更多歌曲行</p>
+        <h1>🎵 歌词提取工具（支持按行上传缺失LRC）</h1>
+        <p>智能匹配 | 手动指定 | 歌单顺序 | 缺失歌词可单独上传LRC文件并绑定到歌曲行</p>
     </header>
 
     <div class="main-content">
@@ -294,7 +267,8 @@
                 <h3>使用说明：</h3>
                 <p>✔ 上传 LRC 文件或 ZIP 压缩包</p>
                 <p>✔ 歌单按行填写，点击“按歌单顺序填充”</p>
-                <p>✔ 右键歌曲行 → “手动匹配歌词文件” 精准指定 LRC（不改变歌曲标题）</p>
+                <p>✔ 右键歌曲行 → “手动匹配歌词文件” 精准指定已上传的LRC</p>
+                <p>✔ ✨ 右键歌曲行 → “📁 上传LRC文件并匹配” 可单独上传缺失的歌词文件，自动绑定到当前歌曲</p>
                 <p>✔ 竖屏下表格区域已扩大，可同时显示更多歌曲</p>
             </div>
         </div>
@@ -302,7 +276,7 @@
         <div class="panel right-panel">
             <h2 class="section-title">处理日志</h2>
             <div class="log-container" id="logContainer">
-                <div class="log-entry log-info">竖屏模式下表格已优化，可显示更多歌曲行。</div>
+                <div class="log-entry log-info">新功能：右键歌曲行可单独上传缺失的LRC文件并绑定。</div>
             </div>
             <h2 class="section-title">输出预览</h2>
             <div class="preview-container">
@@ -324,6 +298,7 @@
 <div class="save-status" id="saveStatus"></div>
 <div class="context-menu" id="contextMenu">
     <div class="context-menu-item" onclick="showCorrectionDialog()">🎯 手动匹配歌词文件</div>
+    <div class="context-menu-item" onclick="uploadAndMatchCurrentSong()">📁 上传LRC文件并匹配</div>
     <div class="context-menu-item" onclick="rematchCurrentSong()">🔄 清除手动匹配/重试自动</div>
     <div class="context-menu-item" onclick="copySongName()">📋 复制歌曲名称</div>
     <div class="context-menu-item" onclick="insertRowBelow()">➕ 在下方插入行</div>
@@ -355,7 +330,6 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('lrcFiles').addEventListener('change', handleFileUpload);
-        // 默认创建 10 行，让用户一开始就看到更多行（竖屏友好）
         for (let i = 0; i < 10; i++) addSongRow();
         updateIndexes();
         setupRealTimePreview();
@@ -364,6 +338,67 @@
         document.getElementById('searchInput').addEventListener('keyup', (e) => e.key === 'Enter' && searchSongs());
         window.addEventListener('resize', () => { if(previewUpdateTimer) clearTimeout(previewUpdateTimer); schedulePreviewUpdate(); });
     });
+
+    // ----- 新增：为当前歌曲行上传LRC文件并绑定 -----
+    async function uploadAndMatchCurrentSong() {
+        if (!currentContextRowId) {
+            addLog('未选中任何歌曲行', 'error');
+            return;
+        }
+        const row = songRows.find(r => r.id === currentContextRowId);
+        if (!row) return;
+        
+        // 创建隐式文件选择器
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.lrc';
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!file.name.endsWith('.lrc')) {
+                addLog('请选择 .lrc 格式的歌词文件', 'error');
+                return;
+            }
+            try {
+                const content = await file.text();
+                let baseName = file.name.replace(/\.lrc$/i, '');
+                // 如果文件名已存在，自动添加后缀 (1), (2) 避免覆盖
+                let finalKey = baseName;
+                let counter = 1;
+                while (lrcFiles[finalKey]) {
+                    finalKey = `${baseName} (${counter})`;
+                    counter++;
+                }
+                lrcFiles[finalKey] = { name: finalKey, content: content, source: `手动上传: ${file.name}` };
+                // 建立手动映射
+                manualMapping[currentContextRowId] = finalKey;
+                addLog(`✅ 已上传并绑定歌词文件「${finalKey}」到歌曲「${row.songName || '未命名'}」`, 'success');
+                
+                // 更新表格手动徽章
+                updateManualBadge(currentContextRowId);
+                // 刷新预览
+                schedulePreviewUpdate();
+                
+                // 同时刷新文件列表显示（简单重新渲染一下文件列表区域）
+                renderFileList();
+            } catch (err) {
+                addLog(`上传失败: ${err.message}`, 'error');
+            }
+        };
+        fileInput.click();
+        document.getElementById('contextMenu').style.display = 'none';
+    }
+    
+    function renderFileList() {
+        const fileListDiv = document.getElementById('fileList');
+        fileListDiv.innerHTML = '';
+        for (let [name, info] of Object.entries(lrcFiles)) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'file-item';
+            itemDiv.innerHTML = `<div class="file-name">${escapeHtml(name)}.lrc</div><div class="file-status status-ready">${info.source === 'manual upload' ? '手动上传' : '已加载'}</div>`;
+            fileListDiv.appendChild(itemDiv);
+        }
+    }
 
     // ----- 智能匹配算法 -----
     function smartMatch(songName, fileName) {
